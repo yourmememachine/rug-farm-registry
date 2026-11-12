@@ -1,0 +1,54 @@
+# Daily rug-farm scan: fetch recent pump.fun creations, label outcomes,
+# and commit only verified new serial ruggers (>= 2 rugged mints,
+# each with evidence). Runs daily ~09:00 UTC.
+#
+# Required secret: HELIUS_API_KEY (Helius free tier is enough).
+#   GitHub repo -> Settings -> Secrets and variables -> Actions
+#   -> New repository secret, name HELIUS_API_KEY.
+# Without the secret the scan exits 2 and the workflow fails loudly —
+# it never commits faked data. See README "Daily scan".
+name: Daily rug-farm scan
+
+on:
+  schedule:
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: pytest -q
+
+      - name: Run daily scan
+        env:
+          HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
+        run: python -m src.daily_scan --limit 50
+
+      - name: Commit new alerts (only if files changed)
+        run: |
+          DATE=$(date -u +%F)
+          git config user.name "rug-farm-bot"
+          git config user.email "rug-farm-bot@users.noreply.github.com"
+          git add data/registry.json data/alerts/
+          if git diff --cached --quiet; then
+            echo "No new verified alerts for $DATE — nothing to commit."
+          else
+            git commit -m "daily alerts: $DATE"
+            git push
+          fi
