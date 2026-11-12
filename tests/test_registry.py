@@ -86,6 +86,31 @@ def test_check_flagged_wallet():
     assert result["evidence"]  # evidence is returned, not just a boolean
 
 
+def test_check_flagged_wallet_with_known_mint():
+    # v1.2: a mint that IS one of the dev's rugged mints is confirmed.
+    data = load_registry(REGISTRY)
+    result = check_wallet(
+        data, FLAGGED,
+        mint="SAMPLEMNT1111111111111111111111111111111", today=TODAY,
+    )
+    assert result["flagged"] is True
+    assert result["mint_in_registry"] is True
+    assert not any("not one of" in r for r in result["reasons"])
+
+
+def test_check_flagged_wallet_with_unrelated_mint():
+    # v1.2: a valid mint that is NOT one of the dev's rugged mints must
+    # not be mislabelled as rugged — the verdict stays about the dev.
+    data = load_registry(REGISTRY)
+    result = check_wallet(
+        data, FLAGGED, mint="UnknownMnt" + "1" * 22, today=TODAY,
+    )
+    assert result["flagged"] is True  # dev is still flagged
+    assert result["risk_level"] == "high"
+    assert result["mint_in_registry"] is False
+    assert any("not one of" in r for r in result["reasons"])
+
+
 def test_check_unknown_wallet():
     data = load_registry(REGISTRY)
     result = check_wallet(data, "Unknown111111111111111111111111111111", today=TODAY)
