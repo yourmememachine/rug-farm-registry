@@ -56,6 +56,9 @@ in the original workspace) and the links in `CONTRIBUTING.md`.
   the latest boosted Solana tokens from DexScreener's public API
   — market cap, liquidity, 24h volume/change, watch label only
   (`collapsed` / `thin_liquidity` / `active`, never "rugged").
+- **Single-file SDK** (`src/rugfarm.py`): stdlib-only client
+  library developers can copy into their own projects — see
+  [Clone & use in your project](#clone--use-in-your-project).
 
 No custody, no trading, no private keys. Read-only registry + API.
 
@@ -155,6 +158,79 @@ a dev wallet plus LP-removal / dev-sell evidence (see
 `src/labeller.py`), which this tool does not have, so it never
 says "rugged". No holder data is shown: DexScreener's public
 API returns none, and we do not invent any.
+
+## Clone & use in your project
+
+Developers can clone the repo and use the registry from their own
+bot, scanner or wallet — no API server needed:
+
+```bash
+git clone https://github.com/yourmememachine/rug-farm-registry
+cd rug-farm-registry
+pip install -r requirements.txt   # full project (API, indexer, tests)
+# ...or copy just src/rugfarm.py into your project: it is
+# stdlib-only and needs no install at all.
+```
+
+### Check a dev wallet
+
+```python
+from src.rugfarm import RugFarm
+
+rf = RugFarm()  # loads data/registry.json from the repo
+result = rf.check_dev("SAMPLEDEV11111111111111111111111111111111")
+# verdict: "flagged", rugged_mint_count: 3, exit_code: 1
+# rugged_mints: [{mint, symbol, collapse_pct, evidence: {solscan_mint, ...}}, ...]
+
+if rf.is_flagged_dev(dev_wallet):
+    skip_trade()  # >= 2 rugged mints with evidence, unexpired
+```
+
+### Check a coin mint
+
+```python
+result = rf.check_mint("SAMPLEMNT1111111111111111111111111111111")
+# verdict: "rugged", symbol: "SAMPLE1",
+# dev_wallet: "SAMPLEDEV11111111111111111111111111111111",
+# collapse_pct: 98.1, evidence: {...}
+
+if rf.is_rugged_mint(mint):
+    skip_trade()  # registry-only, no network call
+```
+
+A mint not in the registry is checked live against DexScreener
+(no key) and returns `verdict: "not_in_registry"` with a watch
+label (`collapsed` / `thin_liquidity` / `active`) and market data —
+never a "rugged" verdict without registry evidence. If DexScreener
+is unreachable, market fields come back `None` instead of
+invented numbers.
+
+### Live watchlist
+
+```python
+for entry in rf.watch(limit=5):
+    print(entry["symbol"], entry["market_cap_usd"], entry["watch_label"])
+# watch labels only — a collapsed token is not proven rugged.
+```
+
+Or from the terminal:
+
+```bash
+python -m src.rugfarm <wallet-or-mint>          # exit 1 = flagged / rugged
+python examples/use_rugfarm.py                  # copy-paste demo
+```
+
+### Rules (enforced in the SDK, same as the rest of the repo)
+
+- **Flag only with >= 2 rugged mints + evidence per mint.**
+  One rug = `under_review`, never flagged; expired entries are
+  `not_flagged`.
+- **Never invent a wallet, a mint, a holder count or an outcome.**
+  Unknown addresses return `unknown` — not a clean bill of health.
+- **Sample data is clearly marked.** Every result carries
+  `sample_data: true` while the shipped sample registry is loaded;
+  sample wallets/mints are synthetic and are NOT accusations.
+- **No custody, no trading, no private keys.** Read-only checks.
 
 ## Endpoints
 
@@ -258,6 +334,8 @@ src/indexer.py          Helius pump.fun indexer + DexScreener outcomes
 src/daily_scan.py       daily scan CLI: fetch -> label -> cluster -> alert
 src/check_cli.py        pre-trade check CLI (exit 1 = flagged)
 src/pump_watch.py       pump.fun watchlist, no key (collapsed / thin / active)
+src/rugfarm.py          single-file stdlib-only SDK for developers (clone-ready)
+examples/use_rugfarm.py copy-paste SDK demo
 src/api.py              FastAPI app
 CHANGELOG.md            v1.0 / v1.1 / v1.2 / v1.3 release notes
 .github/workflows/daily-scan.yml   daily 09:00 UTC scan + commit
