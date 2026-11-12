@@ -2,6 +2,22 @@
 
 All notable changes to the Open Rug-Farm Registry.
 
+## v1.2 — 2026-11-12 (unpushed, local)
+
+- Fixed `src/registry.check_wallet`: a `--mint` that is NOT one of
+  the dev's rugged mints no longer reads as if that mint were
+  rugged. The verdict stays about the dev, and the result now
+  carries `mint_in_registry` (true / false / null) plus a reason
+  saying the mint is not one of the dev's rugged mints.
+  Same fix applies to the unknown / expired / watch results.
+- Added 2 tests in `tests/test_registry.py` (known mint confirmed,
+  unrelated mint flagged as not-in-registry while the dev stays
+  flagged). 46 tests total.
+- No registry entries added: no wallet found in today's public
+  research met the >= 2 rugged mints + evidence rule (see
+  `data/alerts/2026-11-12.md` — the live scan is still blocked
+  without `HELIUS_API_KEY`).
+
 ## v1.1 — 2026-11-12
 
 - Added `src/check_cli.py`: command-line pre-trade check
