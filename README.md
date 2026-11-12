@@ -52,6 +52,10 @@ in the original workspace) and the links in `CONTRIBUTING.md`.
   daily 09:00 UTC scan, writes `data/alerts/YYYY-MM-DD.md`, commits
   only verified ≥ 2-rug wallets.
 - **API** (`src/api.py`): FastAPI, JSON only — see below.
+- **Pump.fun watch** (`src/pump_watch.py`): no-key watchlist of
+  the latest boosted Solana tokens from DexScreener's public API
+  — market cap, liquidity, 24h volume/change, watch label only
+  (`collapsed` / `thin_liquidity` / `active`, never "rugged").
 
 No custody, no trading, no private keys. Read-only registry + API.
 
@@ -129,6 +133,28 @@ Exit codes: `1` flagged, `0` unknown / watch / expired (not
 currently flagged), `2` invalid address or mint. Same rules as
 `GET /check` — the CLI reuses `src/registry.check_wallet`, so the
 flagging logic lives in exactly one place.
+
+## Pump.fun watch (no key)
+
+No Helius key needed — watch the latest boosted Solana tokens
+straight from DexScreener's public API:
+
+```bash
+python -m src.pump_watch
+# LEAD (mint...) — market cap, liquidity, 24h volume, 24h change
+#   watch: active
+
+python -m src.pump_watch --limit 5 --json
+```
+
+Watch labels: `collapsed` (24h change <= -70%),
+`thin_liquidity` (liquidity < $1,000), `active` otherwise.
+These are **watch labels, not rug verdicts** — a collapsed or
+thin token is not proven rugged. Calling a token rugged needs
+a dev wallet plus LP-removal / dev-sell evidence (see
+`src/labeller.py`), which this tool does not have, so it never
+says "rugged". No holder data is shown: DexScreener's public
+API returns none, and we do not invent any.
 
 ## Endpoints
 
@@ -231,8 +257,9 @@ src/cluster.py          funding-graph clustering, 1-2 hops
 src/indexer.py          Helius pump.fun indexer + DexScreener outcomes
 src/daily_scan.py       daily scan CLI: fetch -> label -> cluster -> alert
 src/check_cli.py        pre-trade check CLI (exit 1 = flagged)
+src/pump_watch.py       pump.fun watchlist, no key (collapsed / thin / active)
 src/api.py              FastAPI app
-CHANGELOG.md            v1.0 / v1.1 release notes
+CHANGELOG.md            v1.0 / v1.1 / v1.2 / v1.3 release notes
 .github/workflows/daily-scan.yml   daily 09:00 UTC scan + commit
 tests/                  pytest: labeller, cluster, registry, API, indexer, daily scan
 ```
