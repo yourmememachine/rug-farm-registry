@@ -1,0 +1,108 @@
+"""FastAPI app for the Open Rug-Farm Registry.
+
+Endpoints (JSON only):
+    GET /health
+    GET /registry
+    GET /wallets/{address}
+    GET /check?mint=<mint>&dev=<dev_wallet>
+    GET /clusters/{cluster_id}
+
+Run:  uvicorn src.api:app --reload --port 8000
+Registry path can be overridden with the REGISTRY_PATH env var.
+"""
+from __future__ import annotations
+
+import os
+from pathlib import Path
+
+from fastapi import FastAPI, HTTPException, Query
+
+from .cluster import build_clusters  # noqa: F401  (re-exported for callers)
+from .registry import (
+    check_wallet,
+    get_wallet,
+    is_flagged,
+    list_flagged,
+    load_registry,
+)
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_REGISTRY_PATH = PROJECT_ROOT / "data" / "registry.json"
+
+app = FastAPI(
+    title="Open Rug-Farm Registry",
+    description=(
+        "Public, git-versioned registry of serial-rugger dev wallets "
+        "and funding-linked clusters. SAMPLE DATA ONLY in this MVP — "
+        "no real wallet is accused."
+    ),
+    version="0.1.0",
+)
+
+
+def _registry_path() -> Path:
+    return Path(os.environ.get("REGISTRY_PATH", DEFAULT_REGISTRY_PATH))
+
+
+def _load() -> dict:
+    return load_registry(_registry_path())
+
+
+@app.get("/health")
+def health() -> dict:
+    data = _load()
+    return {
+        "status": "ok",
+        "version": data.get("version"),
+        "sample_data": bool(data.get("sample_data")),
+        "entries": len(data.get("entries", [])),
+        "flagged": len(list_flagged(data)),
+    }
+
+
+@app.get("/")
+def index() -> dict:
+    return {
+        "name": "Open Rug-Farm Registry",
+        "version": "0.1.0",
+        "sample_data": True,
+        "endpoints": ["/health", "/registry", "/wallets/{address}",
+                      "/check?dev=<wallet>&mint=<mint>", "/clusters/{cluster_id}"],
+    }
+
+
+@app.get("/registry")
+def registry() -> dict:
+    return _load()
+
+
+@app.get("/wallets/{address}")
+def wallet(address: str) -> dict:
+    data = _load()
+    entry = get_wallet(data, address)
+    if entry is None:
+        raise HTTPException(status_code=404, detail="Wallet not in registry")
+    return {**entry, "currently_flagged": is_flagged(entry)}
+
+
+@app.get("/check")
+def check(
+    dev: str = Query(..., description="Dev wallet address to check"),
+    mint: str | None = Query(None, description="Mint address (optional)"),
+) -> dict:
+    data = _load()
+    return check_wallet(data, dev, mint=mint)
+
+
+@app.get("/clusters/{cluster_id}")
+def cluster(cluster_id: str) -> dict:
+    data = _load()
+    members = [e for e in data.get("entries", []) if e.get("cluster_id") == cluster_id]
+    if not members:
+        raise HTTPException(status_code=404, detail="Cluster not found")
+    return {
+        "cluster_id": cluster_id,
+        "wallets": [e["wallet"] for e in members],
+        "flagged_wallets": [e["wallet"] for e in members if is_flagged(e)],
+        "entries": members,
+    }
