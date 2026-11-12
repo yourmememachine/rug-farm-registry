@@ -109,6 +109,27 @@ curl http://127.0.0.1:8000/clusters/cluster-sample-a1
 Risk levels: `high` (flagged, ≥ 2 rugs), `watch` (under review,
 1 rug), `expired` (entry past TTL), `unknown` (no record).
 
+## Pre-trade check (CLI)
+
+No API server needed — check a dev wallet straight from the terminal:
+
+```bash
+python -m src.check_cli SAMPLEDEV11111111111111111111111111111111
+# Risk level: high / Flagged: YES / Rugged mint count: 3
+# ... reasons and evidence links ...
+
+python -m src.check_cli SAMPLEDEV11111111111111111111111111111111 \
+    --mint SAMPLEMNT1111111111111111111111111111111
+
+python -m src.check_cli UnknownDev1111111111111111111111111
+# Risk level: unknown — no record, not a clean bill of health
+```
+
+Exit codes: `1` flagged, `0` unknown / watch / expired (not
+currently flagged), `2` invalid address or mint. Same rules as
+`GET /check` — the CLI reuses `src/registry.check_wallet`, so the
+flagging logic lives in exactly one place.
+
 ## Endpoints
 
 | Method | Path | Description |
@@ -209,7 +230,9 @@ src/labeller.py         rugged / failed_but_honest / inconclusive
 src/cluster.py          funding-graph clustering, 1-2 hops
 src/indexer.py          Helius pump.fun indexer + DexScreener outcomes
 src/daily_scan.py       daily scan CLI: fetch -> label -> cluster -> alert
+src/check_cli.py        pre-trade check CLI (exit 1 = flagged)
 src/api.py              FastAPI app
+CHANGELOG.md            v1.0 / v1.1 release notes
 .github/workflows/daily-scan.yml   daily 09:00 UTC scan + commit
 tests/                  pytest: labeller, cluster, registry, API, indexer, daily scan
 ```
