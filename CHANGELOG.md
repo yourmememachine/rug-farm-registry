@@ -2,7 +2,24 @@
 
 All notable changes to the Open Rug-Farm Registry.
 
-## v1.2 — 2026-11-12 (unpushed, local)
+## v1.3 — 2026-11-12 (unpushed, local)
+
+- Added `src/pump_watch.py`: public, no-key pump.fun watchlist
+  (`python -m src.pump_watch [--limit 10] [--json]`) — fetches the
+  latest boosted tokens from DexScreener's public API (no key) and
+  reports mint, symbol, market cap, liquidity, 24h volume and 24h
+  change, with a watch label only: `collapsed` (24h <= -70%),
+  `thin_liquidity` (liquidity < $1,000), `active` otherwise.
+  It NEVER labels a token "rugged" — that needs dev-wallet +
+  LP/dev-sell evidence, which this tool does not have. No holder
+  data is invented; DexScreener returns none.
+- Added `tests/test_pump_watch.py` (11 tests: label thresholds,
+  pair parsing, collapsed / thin / active, non-Solana filtering,
+  limit, empty boosts, API error, non-list response, bad limit,
+  text disclaimer, JSON output). 57 tests total.
+- No registry entries added by this change.
+
+## v1.2 — 2026-11-12
 
 - Fixed `src/registry.check_wallet`: a `--mint` that is NOT one of
   the dev's rugged mints no longer reads as if that mint were
