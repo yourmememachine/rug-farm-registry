@@ -231,6 +231,7 @@ def check_wallet(
         return {
             "dev_wallet": dev_wallet,
             "mint": mint,
+            "mint_in_registry": None if mint is None else False,
             "flagged": False,
             "risk_level": "unknown",
             "rugged_mint_count": 0,
@@ -240,37 +241,61 @@ def check_wallet(
         }
     count = rugged_mint_count(entry)
     evidence = [m.get("evidence", {}) for m in entry.get("rugged_mints", [])]
+    # A --mint argument names one mint to check. The verdict below is
+    # about the DEV, not that mint, unless the mint is actually one of
+    # the dev's rugged mints in the registry — saying otherwise would
+    # mislabel an unrelated mint as rugged. (v1.2 fix.)
+    mint_in_registry = (
+        None
+        if mint is None
+        else any(m.get("mint") == mint for m in entry.get("rugged_mints", []))
+    )
+    mint_note = (
+        None
+        if mint_in_registry in (None, True)
+        else f"Mint {mint} is not one of this dev's rugged mints in the "
+        "registry — this verdict is about the dev, not that mint."
+    )
     if is_expired(entry, today):
+        reasons = [
+            f"Entry expired (last seen {entry.get('last_seen')}, "
+            f"TTL {entry.get('ttl_days')} days). Re-verify before trusting it."
+        ]
+        if mint_note:
+            reasons.append(mint_note)
         return {
             "dev_wallet": dev_wallet,
             "mint": mint,
+            "mint_in_registry": mint_in_registry,
             "flagged": False,
             "risk_level": "expired",
             "rugged_mint_count": count,
             "cluster_id": entry.get("cluster_id"),
-            "reasons": [
-                f"Entry expired (last seen {entry.get('last_seen')}, "
-                f"TTL {entry.get('ttl_days')} days). Re-verify before trusting it."
-            ],
+            "reasons": reasons,
             "evidence": evidence,
         }
     if is_flagged(entry, today):
+        reasons = [
+            f"Flagged serial rugger: {count} rugged mints with on-chain evidence.",
+            f"Cluster: {entry.get('cluster_id')}.",
+        ]
+        if mint_note:
+            reasons.append(mint_note)
         return {
             "dev_wallet": dev_wallet,
             "mint": mint,
+            "mint_in_registry": mint_in_registry,
             "flagged": True,
             "risk_level": "high",
             "rugged_mint_count": count,
             "cluster_id": entry.get("cluster_id"),
-            "reasons": [
-                f"Flagged serial rugger: {count} rugged mints with on-chain evidence.",
-                f"Cluster: {entry.get('cluster_id')}.",
-            ],
+            "reasons": reasons,
             "evidence": evidence,
         }
     return {
         "dev_wallet": dev_wallet,
         "mint": mint,
+        "mint_in_registry": mint_in_registry,
         "flagged": False,
         "risk_level": "watch",
         "rugged_mint_count": count,
@@ -278,6 +303,7 @@ def check_wallet(
         "reasons": [
             f"Under review: {count} rugged mint(s) — below the "
             f"{MIN_RUGGED_MINTS_TO_FLAG}-rug threshold to flag."
-        ],
+        ]
+        + ([mint_note] if mint_note else []),
         "evidence": evidence,
     }
