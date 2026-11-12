@@ -33,6 +33,8 @@ import sys
 
 import httpx
 
+from src.http_client import make_client
+
 TOKEN_BOOSTS_URL = "https://api.dexscreener.com/token-boosts/latest/v1"
 TOKENS_URL = "https://api.dexscreener.com/tokens/v1/solana"
 
@@ -101,7 +103,7 @@ class PumpWatch:
             if self._client is not None:
                 resp = self._client.get(url)
             else:
-                with httpx.Client(timeout=30.0) as client:
+                with make_client(timeout=30.0) as client:
                     resp = client.get(url)
             resp.raise_for_status()
         except httpx.HTTPError as exc:

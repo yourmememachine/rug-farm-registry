@@ -33,6 +33,8 @@ from datetime import datetime, timezone
 
 import httpx
 
+from src.http_client import make_client
+
 HELIUS_RPC_URL = "https://mainnet.helius-rpc.com"
 DEXSCREENER_URL = "https://api.dexscreener.com/latest/dex/tokens"
 PUMP_FUN_PROGRAM = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
@@ -103,7 +105,7 @@ class HeliusIndexer:
         if self._client is not None:
             resp = self._client.post(url, json=payload)
         else:
-            with httpx.Client(timeout=30.0) as client:
+            with make_client(timeout=30.0) as client:
                 resp = client.post(url, json=payload)
         resp.raise_for_status()
         data = resp.json()
@@ -115,7 +117,7 @@ class HeliusIndexer:
         if self._client is not None:
             resp = self._client.get(url)
         else:
-            with httpx.Client(timeout=30.0) as client:
+            with make_client(timeout=30.0) as client:
                 resp = client.get(url)
         resp.raise_for_status()
         return resp.json()
