@@ -2,6 +2,39 @@
 
 All notable changes to the Open Rug-Farm Registry.
 
+## v2.0 — 2026-11-13
+
+- Added `src/multichain.py`: multi-chain support, stdlib-only,
+  no wallet, no funds moved, no private key. ChainAdapter base
+  class with one shared probe return shape (chain, address,
+  balance, kind, owner, contract flag, explorer + DexScreener
+  links, available / error); SolanaAdapter (public Solana RPC
+  probe, Solscan links) and BaseAdapter (public Base RPC
+  https://mainnet.base.org, no key: eth_getBalance wei -> ETH,
+  eth_getCode for contract detection, Basescan links).
+  MultiChainRegistry routes a check to the right adapter and
+  adds the registry verdict — chain-independent, flagged only
+  on >= 2 rugged mints with evidence, on any chain. The
+  registry is still Solana sample data only, so a Base check
+  honestly reports its registry verdict as unknown ("no Base
+  registry coverage yet") while the probe still works.
+  ChainCompare puts the same token data on two chains side by
+  side (liquidity / market cap / 24h change, watch / ok per
+  chain, never "rugged"). Demo CLI
+  `python -m src.multichain --chain solana|base --address <addr>`
+  / `--compare` / `--list-chains`; exit 0 = ok, 2 = invalid
+  args / chain / address.
+- Added `tests/test_multichain.py` (23 tests, synthetic data
+  only, no network: adapter routing, Base explorer URLs, Base
+  balance parsing, Solana vs Base shape parity, unsupported
+  chain, RPC failure honesty, compare labels, CLI exit codes).
+- README: new "Multi-chain (v2.0)" section.
+- Roadmap note: future evidence work is done by Muse itself —
+  automated research plus Helius / DexScreener evidence
+  gathering — not by the community. No community dependency
+  anywhere in the roadmap.
+- No registry entries added: registry is still sample data only.
+
 ## v1.9 — 2026-11-13
 
 - Added `src/web3_future.py`: future-facing web3 module,
@@ -15,8 +48,8 @@ All notable changes to the Open Rug-Farm Registry.
   only: thin liquidity < $1,000, collapsed <= -70% 24h, no
   liquidity reported — labels watch / ok only, never
   "rugged"), RoadmapAgent (next 3 versions as markdown: v2.0
-  multi-chain, v2.1 Helius live scan, v2.2 community evidence
-  submissions; dates always TBD). Demo CLI
+  multi-chain, v2.1 Helius live scan, v2.2 Muse-run evidence
+  gathering (no community dependency); dates always TBD). Demo CLI
   `python -m src.web3_future --wallet <address>` / `--roadmap`
   / risk flags; exit 0 = ok, 2 = invalid args.
 - Added `tests/test_web3_future.py` (19 tests, synthetic data
