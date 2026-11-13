@@ -2,6 +2,33 @@
 
 All notable changes to the Open Rug-Farm Registry.
 
+## v1.9 — 2026-11-13
+
+- Added `src/web3_future.py`: future-facing web3 module,
+  stdlib-only, no wallet, no SOL spent, no private key.
+  FutureChain (chain-agnostic registry design: Solana live
+  today, Base planned with explorer URLs ready, verdicts never
+  depend on the chain), OnChainProbe (public Solana RPC, no
+  key: SOL balance, account owner, token mint vs system
+  wallet, honest "unavailable" on RPC failure), FutureWatch
+  (forward-looking risk signals from real DexScreener data
+  only: thin liquidity < $1,000, collapsed <= -70% 24h, no
+  liquidity reported — labels watch / ok only, never
+  "rugged"), RoadmapAgent (next 3 versions as markdown: v2.0
+  multi-chain, v2.1 Helius live scan, v2.2 community evidence
+  submissions; dates always TBD). Demo CLI
+  `python -m src.web3_future --wallet <address>` / `--roadmap`
+  / risk flags; exit 0 = ok, 2 = invalid args.
+- Added `tests/test_web3_future.py` (19 tests, synthetic data
+  only, no network: chain explorer URLs, solana-only guard,
+  probe balance / owner / mint-vs-wallet, RPC failure
+  handling, future-risk labels, roadmap contents, CLI exit
+  codes). 151 tests total.
+- README: new "Web3 future" section.
+- No registry entries added: registry is still sample data only.
+- Note: the user message "eeb3" was unclear; interpreted as
+  "build with web3, think the future" and built this module.
+
 ## v1.8 — 2026-11-13
 
 - Added `src/creativity.py`: 4 small, deterministic, stdlib-only
