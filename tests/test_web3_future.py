@@ -160,7 +160,7 @@ def test_roadmap_has_three_versions_and_tbd_dates():
     assert "v2.0" in text and "v2.1" in text and "v2.2" in text
     assert "Multi-chain" in text
     assert "Helius" in text
-    assert "Community evidence" in text
+    assert "Muse-run evidence" in text
     assert "TBD" in text
     assert "132" in text
     assert "never auto-flag" in text.lower() or "never auto-flag" in text
