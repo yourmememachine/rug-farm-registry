@@ -8,20 +8,61 @@ labelled dataset from real observable market facts, so the model
 can be trained and evaluated on the real world instead of on
 synthetic data.
 
-Labelling rule "real-v1" — FIXED BEFORE ANY FETCH, and never
-tuned after seeing the metrics. A token is labelled from real
-observable market facts only:
+Labelling rule "real-v2" (v2.13) — the v2.9 "real-v1" rule,
+loosened where v2.11's verified evidence proved it too strict.
+v1 was fixed before any fetch and never tuned after seeing the
+metrics; v2 changes ONLY the thresholds the verified numbers
+demand, and every change is justified below. A token is labelled
+from real observable market facts only:
 
 - "rugged" (rugged-like) if EITHER branch holds:
-    A. Fresh collapse: 24h change <= -70% AND liquidity < $1,000
+    A. Fresh collapse: 24h change <= -90% AND liquidity < $1,000
        AND 24h volume < $1,000 AND pair age >= 1 day.
-    B. Long-dead: liquidity < $100 AND 24h volume < $100 AND
-       market cap < $5,000 AND pair age >= 7 days.
+    B. Long-dead: liquidity < $2,500 AND 24h volume < $500 AND
+       market cap < $5,000 AND pair age >= 5 days.
 - "survived" if ALL hold: liquidity >= $10,000 AND 24h volume
   >= $5,000 AND 24h change > -30% AND pair age >= 7 days.
 - Otherwise "excluded" — the ambiguous middle is excluded, not
   forced into either class. A missing value never satisfies a
   threshold (missing data means the condition is not met).
+
+v1 -> v2, threshold by threshold:
+- Branch A collapse -70% -> -90%: TIGHTENED, not loosened.
+  v1's -70% proxy was looser than the registry's own >= 90%
+  collapse standard (labeller.py COLLAPSE_RUG_PCT = 90.0), and
+  a -70% day is ordinary meme-coin volatility, not a collapse.
+  v2 aligns the observable proxy with the 90% bar. The
+  loosening in v2 is in liquidity and age, never in collapse.
+- Branch B liquidity $100 -> $2,500: the 4 verified small
+  rugs (v2.11) hold $1,606-$1,907 residual liquidity — real
+  rugged pools almost never drain below $100, so the v1 branch
+  almost never fired. $2,500 covers the observed range with
+  ~30% headroom and is still far below the survived floor
+  ($10,000).
+- Branch B volume $100 -> $500: "ser" had $413.56 24h volume,
+  so v1's $100 cap excluded a verified dead rug. $500 covers
+  the observed max ($413.56) with headroom while still meaning
+  "nobody is trading this".
+- Branch B age 7 days -> 5 days: the 4 small rugs are 5.67-5.94
+  days old, so v2 catches them NOW (2026-11-13) instead of
+  ~Nov 19-20. A 5-day floor still requires the token to have
+  been dead for days, not hours — branch A (1-day floor) is the
+  one that handles fresh collapses.
+- Branch B market cap < $5,000: UNCHANGED. All 4 small rugs
+  are $1,520-$1,797, well under; no evidence to move it.
+- Branch A liquidity / volume / age: UNCHANGED. No evidence
+  to move them.
+
+What v2 still does NOT catch, stated plainly: the famous
+three (LIBRA, HAWK, CAR) still hold real liquidity ($4.4k-
+$201k) and market cap ($870k-$2.9M), so no liquidity/market-cap
+branch catches them — they were rugged by insider selling, not
+by draining the pool to zero, and catching them needs
+dev-sell / LP-removal evidence that DexScreener does not
+provide. The rule is NOT forced to catch them. Never label a
+mint rugged on liquidity alone: branch B also requires a tiny
+market cap, near-zero volume AND age — a live token with a
+small pool but real trading is excluded, not rugged.
 
 What "rugged-like" means here — read this before quoting the
 metrics: these labels are OBSERVABLE-MARKET-FACT labels, not
@@ -86,7 +127,7 @@ RugCheck/Solscan writeup, a public thread, or a public
 rule-based rug tracker) and "source" is that source's URL.
 Each mint is verified live via the DexScreener /tokens/ lookup
 (batched, 30 per call) and labelled with the SAME fixed
-"real-v1" rule — the source only changes which mints are
+"real-v2" rule — the source only changes which mints are
 sampled, never the labelling. A mint with no DexScreener pair
 yields no record; an address that is not a valid Solana address
 is rejected without a fetch. CLI:
@@ -104,6 +145,11 @@ Usage:
       (--verify-documented verifies a caller-supplied list of
       documented rugged mints and merges the verified records
       into the existing file at --out, deduped by mint.)
+    python -m src.real_data --relabel [--out data/ml_real_dataset.json] [--json]
+      (--relabel re-labels the existing dataset at --out with the
+      CURRENT rule (real-v2) from the stored market facts — no
+      re-fetch — and rewrites the dataset + summary sidecar.
+      Used when the rule itself changes, v2.13.)
 
 Exit 0 = ok, 2 = invalid args / network error / too few usable
 tokens (< 10 labelled records — the model needs at least 10 to
@@ -162,16 +208,17 @@ PUMPFUN_MAX_429_RETRIES = 3
 PUMPFUN_429_BACKOFF_SECONDS = (2.0, 5.0, 10.0)
 DEFAULT_PUMPFUN_LIMIT = 300
 
-# Labelling rule "real-v1" — fixed before any fetch (see docstring).
-LABELLING_RULE_VERSION = "real-v1"
-RUGGED_COLLAPSE_PCT = -70.0
+# Labelling rule "real-v2" — see the module docstring for the
+# v1 -> v2 justification of every changed threshold.
+LABELLING_RULE_VERSION = "real-v2"
+RUGGED_COLLAPSE_PCT = -90.0
 RUGGED_LIQUIDITY_USD_MAX = 1_000.0
 RUGGED_VOLUME_24H_USD_MAX = 1_000.0
 RUGGED_PAIR_AGE_DAYS_MIN = 1.0
-DEAD_LIQUIDITY_USD_MAX = 100.0
-DEAD_VOLUME_24H_USD_MAX = 100.0
+DEAD_LIQUIDITY_USD_MAX = 2_500.0
+DEAD_VOLUME_24H_USD_MAX = 500.0
 DEAD_MARKET_CAP_USD_MAX = 5_000.0
-DEAD_PAIR_AGE_DAYS_MIN = 7.0
+DEAD_PAIR_AGE_DAYS_MIN = 5.0
 SURVIVED_LIQUIDITY_USD_MIN = 10_000.0
 SURVIVED_VOLUME_24H_USD_MIN = 5_000.0
 SURVIVED_CHANGE_24H_PCT_MIN = -30.0
@@ -227,7 +274,7 @@ def _present(value: float | None, test) -> bool:
 def label_token(obs: dict) -> str:
     """Label one token observation: "rugged" | "survived" | "excluded".
 
-    Pure function of the fixed "real-v1" rule (see module
+    Pure function of the fixed "real-v2" rule (see module
     docstring). ``obs`` holds change_24h_pct, liquidity_usd,
     volume_24h_usd, market_cap_usd and pair_age_days (any may be
     None). Missing data never satisfies a threshold.
@@ -415,6 +462,38 @@ def summarize(records: list[dict]) -> dict:
         "feature_coverage": coverage,
         "features_always_missing": missing_features,
     }
+
+
+def relabel_records(records: list[dict]) -> list[dict]:
+    """Re-label existing dataset records with the CURRENT rule (real-v2).
+
+    Used when the labelling rule itself changes (v2.13): the
+    stored market facts (change, liquidity, volume, market cap,
+    pair age — as observed at fetch time) are re-run through
+    ``label_token`` and the outcome + labelling-rule fields are
+    updated. Nothing is re-fetched and no fact is changed: the
+    mint, source, fetched_at, DexScreener URL and feature values
+    stay exactly as recorded. Records missing an observation
+    field are labelled from what they have — missing data never
+    satisfies a threshold, so a record with no pair age becomes
+    "excluded" unless the (unchanged) survived rule still holds.
+    Returns new dicts; the input list is not mutated.
+    """
+    relabelled: list[dict] = []
+    for record in records:
+        new = dict(record)
+        obs = {
+            "change_24h_pct": record.get("change_24h_pct"),
+            "liquidity_usd": record.get("liquidity_usd"),
+            "volume_24h_usd": record.get("volume_24h_usd"),
+            "market_cap_usd": record.get("market_cap_usd"),
+            "pair_age_days": record.get("pair_age_days"),
+        }
+        new["outcome"] = label_token(obs)
+        new["labelling_rule"] = labelling_rule()
+        new["labelling_rule_version"] = LABELLING_RULE_VERSION
+        relabelled.append(new)
+    return relabelled
 
 
 def save_dataset(path: str | Path, records: list[dict]) -> None:
@@ -663,7 +742,7 @@ def fetch_pumpfun_records(
     client: httpx.Client | None = None,
     limit: int = DEFAULT_PUMPFUN_LIMIT,
 ) -> list[dict]:
-    """Pump.fun launches -> DexScreener enrichment -> real-v1 records.
+    """Pump.fun launches -> DexScreener enrichment -> real-v2 records.
 
     The labelling is the SAME fixed rule as the DexScreener path
     (``label_token`` via ``build_record``) — the source only
@@ -725,14 +804,14 @@ def verify_documented_mints(
     entries: list[dict],
     client: httpx.Client | None = None,
 ) -> dict:
-    """Verify documented rugged mints via DexScreener + real-v1.
+    """Verify documented rugged mints via DexScreener + real-v2.
 
     Each entry is {"mint": <Solana address>, "source": <public
     source URL>}. Duplicate mints are deduped (first entry
     wins). Addresses that are not valid Solana addresses are
     rejected without a fetch; mints with no DexScreener pair are
     dropped (no market facts to label from — never invented).
-    The rest are labelled with the SAME fixed "real-v1" rule via
+    The rest are labelled with the SAME fixed "real-v2" rule via
     build_record, with the public source URL on every record.
     Returns {"records", "verified", "dropped_no_pair",
     "rejected_invalid", "fetched_at"}.
@@ -909,6 +988,44 @@ def format_merge_summary(
     return "\n".join(lines)
 
 
+def format_relabel_summary(
+    before_records: list[dict], after_records: list[dict]
+) -> str:
+    """Human-readable before/after summary of a --relabel run.
+
+    Lists every mint whose outcome changed, so the re-label is
+    auditable from the output alone.
+    """
+    before = summarize(before_records)
+    after = summarize(after_records)
+    before_by_mint = {r.get("mint"): r for r in before_records}
+    lines = [
+        f"Re-labelled with rule {LABELLING_RULE_VERSION}: "
+        f"{before['n_total']} records, "
+        f"{before['n_rugged']} rugged-like -> {after['n_rugged']}, "
+        f"{before['n_survived']} survived -> {after['n_survived']}, "
+        f"{before['n_excluded']} excluded -> {after['n_excluded']} "
+        f"({after['n_labelled']} labelled).",
+    ]
+    changed = [
+        r
+        for r in after_records
+        if before_by_mint.get(r.get("mint"), {}).get("outcome")
+        != r.get("outcome")
+    ]
+    if not changed:
+        lines.append("No record changed outcome.")
+    else:
+        lines.append(f"{len(changed)} record(s) changed outcome:")
+        for record in changed:
+            old = before_by_mint.get(record.get("mint"), {}).get("outcome")
+            lines.append(
+                f"  - {record.get('symbol') or '?'} "
+                f"{record.get('mint')}: {old} -> {record.get('outcome')}"
+            )
+    return "\n".join(lines)
+
+
 def format_summary(records: list[dict]) -> str:
     """Human-readable summary of a fetched dataset."""
     summary = summarize(records)
@@ -941,6 +1058,7 @@ def main(argv: list[str] | None = None, client: httpx.Client | None = None) -> i
     ``python -m src.real_data --fetch [--limit N] [--out path] [--json]``
     ``python -m src.real_data --fetch-pumpfun [--pumpfun-limit N] [--out path] [--json]``
     ``python -m src.real_data --verify-documented <list.json> [--out path] [--json]``
+    ``python -m src.real_data --relabel [--out path] [--json]``
     Exit 0 = ok, 2 = invalid args / network error / too few usable
     tokens (< 10 labelled records). The file is still saved when
     the fetch itself succeeded, so the run stays auditable.
@@ -964,6 +1082,11 @@ def main(argv: list[str] | None = None, client: httpx.Client | None = None) -> i
         default=None,
         metavar="LIST_JSON",
         help="Verify a JSON list of documented rugged mints ({mint, source} pairs) via DexScreener and merge the verified records into the dataset at --out",
+    )
+    parser.add_argument(
+        "--relabel",
+        action="store_true",
+        help="Re-label the existing dataset at --out with the current rule (real-v2) from the stored market facts — no re-fetch",
     )
     parser.add_argument(
         "--limit",
@@ -990,10 +1113,10 @@ def main(argv: list[str] | None = None, client: httpx.Client | None = None) -> i
     )
     args = parser.parse_args(argv)
 
-    if sum([args.fetch, args.fetch_pumpfun, bool(args.verify_documented)]) != 1:
+    if sum([args.fetch, args.fetch_pumpfun, args.relabel, bool(args.verify_documented)]) != 1:
         print(
             "ERROR: nothing to do — pass exactly one of --fetch, "
-            "--fetch-pumpfun or --verify-documented.",
+            "--fetch-pumpfun, --verify-documented or --relabel.",
             file=sys.stderr,
         )
         return EXIT_INVALID
@@ -1001,7 +1124,18 @@ def main(argv: list[str] | None = None, client: httpx.Client | None = None) -> i
         print("ERROR: --limit / --pumpfun-limit must be positive integers.", file=sys.stderr)
         return EXIT_INVALID
     try:
-        if args.verify_documented:
+        if args.relabel:
+            existing = _load_existing_dataset(args.out)
+            records = relabel_records(existing)
+            save_dataset(args.out, records)
+            save_summary(summary_path(args.out), records)
+            if args.json:
+                print(json.dumps(records, indent=2))
+            else:
+                print(format_relabel_summary(existing, records))
+                print(f"Saved to {args.out}")
+                print(f"Summary to {summary_path(args.out)}")
+        elif args.verify_documented:
             existing = _load_existing_dataset(args.out)
             entries = load_documented_list(args.verify_documented)
             result = verify_documented_mints(entries, client=client)
