@@ -2,6 +2,23 @@
 
 All notable changes to the Open Rug-Farm Registry.
 
+## v2.6 — 2026-11-13
+
+- Fixed three bugs found in a full code review (302 tests green,
+  no crashes, no secrets — all three were non-crashing):
+  `src/agents.py` — the daily alert said "(scan did not run — no
+  Helius key)" and "0 rugged mints today" even on days the scan
+  ran and flagged devs; those lines are now conditional on the
+  scan actually being blocked, and the count is real.
+  `src/labeller.py` — a slow bleed with a large dev sell was
+  labelled "failed_but_honest"; it now falls through to
+  "inconclusive", matching the documented rule (honest failure
+  needs no LP removal and dev sold < 20%).
+  `src/registry.py` — a failed merge mutated the existing entry
+  before validation; merges are now validated on a copy first,
+  so a rejected merge leaves the entry untouched.
+- Added regression tests for all three fixes. 305 tests total.
+
 ## v2.5 — 2026-11-13
 
 - Added `src/advanced.py`: advanced detection, stdlib + httpx
