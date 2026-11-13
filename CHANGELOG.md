@@ -2,6 +2,30 @@
 
 All notable changes to the Open Rug-Farm Registry.
 
+## v2.5 — 2026-11-13
+
+- Added `src/advanced.py`: advanced detection, stdlib + httpx
+  only, no wallet, no funds. Built from a GitHub survey of
+  other developers' rug-check code: the best detection lives
+  in closed services, open repos mostly wrap RugCheck / GMGN /
+  Helius, same-block bundler checks are evaded by pre-funding
+  + delayed buys, and nobody open-sources the four things
+  built here. StealthClusterDetector (pre-funded wallets,
+  delayed buys, shared funding sources across 2+ hops, from
+  caller-supplied funding data only — never invents a funder),
+  ExitSimulator (true exit at your size: constant-product
+  price impact + slippage from real liquidity, "unreliable"
+  when liquidity is missing — never invents liquidity),
+  WashScore (HHI-style concentration, top-1 / top-10 share,
+  volume-vs-holders anomaly; "insufficient data" when holder
+  data is missing), OutcomeTracker (record a verdict + later
+  outcome to a caller-given JSON file, never the registry;
+  precision / recall / accuracy over time). CLI
+  `python -m src.advanced --exit / --wash / --cluster /
+  --track`, exit 0 = ok, 2 = invalid args.
+- Added `tests/test_advanced.py` (31 tests, synthetic data
+  only, no network). 302 tests total.
+
 ## v2.4 — 2026-11-13
 
 - Added `src/kol_audit.py`: KOL / fake-PnL auditor, stdlib +
