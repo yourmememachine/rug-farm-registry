@@ -281,11 +281,11 @@ class RoadmapAgent:
             ),
         },
         {
-            "version": "v2.2 — Community evidence",
+            "version": "v2.2 — Muse-run evidence",
             "date": "TBD",
             "items": (
-                "Community evidence submissions with links, reviewed",
-                "Submissions never auto-flag — 2+ verified mints still required",
+                "Muse-run automated evidence gathering with links, verified by Muse itself",
+                "No community dependency — evidence never auto-flags, 2+ verified mints still required",
                 "Public evidence trail per flagged wallet",
             ),
         },
