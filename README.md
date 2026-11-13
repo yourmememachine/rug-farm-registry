@@ -436,6 +436,39 @@ python -m src.advanced --track --verdict flagged --outcome rugged --mint <mint>
 # Exit 0 = ok, 2 = invalid args
 ```
 
+## Dev history (v2.7)
+
+`src/dev_history.py` answers the question the registry never
+could: paste any dev wallet, get their full mint history and a
+verdict. The live scan watches *new* creations globally; this
+checks *one* dev's past. Stdlib + httpx only, no wallet, no
+funds moved, no invented data:
+
+- **DevHistoryBuilder** — fetches the wallet's Helius signature
+  history, parses each transaction into a mint + dev (same
+  parsing as the indexer), labels each mint with `src.labeller`
+  from DexScreener data, and attaches Solscan / DexScreener /
+  pump.fun / Helius evidence links per mint. Rugged mints
+  already in the registry count toward the ≥ 2 rule, deduped
+  by mint. A mint with no DexScreener pair or a failed outcome
+  fetch is `insufficient_data`, never a verdict.
+- **Verdict** — ≥ 2 rugged mints, each with evidence =
+  `flagged`; 1 = `under_review`; 0 rugged with real data =
+  `clean`. A dev with no usable data at all is
+  `insufficient_data`, not "clean" — a clean verdict needs at
+  least one mint with real numbers behind it.
+- **Draft entry** — `DevHistory.draft_entry()` builds a draft
+  registry entry (the exact shape `validate_entry` expects)
+  only when the flagged bar is met. It never writes the
+  registry itself.
+
+```bash
+python -m src.dev_history --wallet <address> [--limit N] [--json]
+# Exit 1 = flagged, 0 = clean / under review / insufficient data,
+#      2 = invalid args / invalid address / no key / network error.
+# Without HELIUS_API_KEY it exits 2 and changes nothing.
+```
+
 ## Clone & use in your project
 
 Developers can clone the repo and use the registry from their own

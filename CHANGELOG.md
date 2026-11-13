@@ -2,6 +2,31 @@
 
 All notable changes to the Open Rug-Farm Registry.
 
+## v2.7 — 2026-11-13
+
+- Added `src/dev_history.py`: dev history — paste any dev wallet,
+  get their full mint history and verdict. Stdlib + httpx only,
+  no wallet, no funds. DevHistoryBuilder collects every mint a
+  dev created (Helius signatures -> parse -> TokenCreation),
+  labels each mint with `src.labeller` from DexScreener data,
+  attaches Solscan / DexScreener / pump.fun / Helius evidence
+  links per mint, and applies the registry rule: >= 2 rugged
+  mints, each with evidence = flagged; 1 = under review; 0
+  rugged with real data = clean. Rugged mints already in the
+  registry count toward the >= 2 rule, deduped by mint. Missing
+  market data or a failed outcome fetch means that mint is
+  `insufficient_data` — never a verdict, never invented numbers;
+  a dev with no usable data at all is `insufficient_data`, not
+  "clean". `DevHistory.draft_entry()` produces a draft registry
+  entry (validated shape) only when the flagged bar is met, and
+  never writes the registry. Reports render as plain text or
+  JSON. CLI `python -m src.dev_history --wallet <address>
+  [--limit N] [--json]`, exit 1 = flagged, 0 = otherwise,
+  2 = invalid args / invalid address / no key / network error.
+  Without HELIUS_API_KEY it exits 2 and changes nothing.
+- Added `tests/test_dev_history.py` (30 tests, synthetic data
+  only, no network). 335 tests total.
+
 ## v2.6 — 2026-11-13
 
 - Fixed three bugs found in a full code review (302 tests green,
