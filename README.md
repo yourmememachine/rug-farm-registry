@@ -159,6 +159,35 @@ a dev wallet plus LP-removal / dev-sell evidence (see
 says "rugged". No holder data is shown: DexScreener's public
 API returns none, and we do not invent any.
 
+## AI agents
+
+Four small, deterministic agents in `src/agents.py` that work
+together as a pipeline — Scanner → Evidence → Verdict → Alert.
+Stdlib only, no new dependency, no invented data:
+
+- **ScannerAgent** — live DexScreener data (via `src.pump_watch`)
+  for a list of mints: market cap, liquidity, 24h volume/change
+  and a watch label (`collapsed` / `thin_liquidity` / `active`).
+  Holder counts are never invented, and no token is ever
+  labelled "rugged".
+- **EvidenceAgent** — for a dev wallet + mint, collects the
+  evidence links (DexScreener, Solscan, pump.fun) plus the
+  registry check, and says "insufficient evidence" when the
+  data is missing instead of guessing.
+- **VerdictAgent** — applies the registry rule only: flagged
+  only with ≥ 2 rugged mints, each with evidence, unexpired;
+  1 rug = under review; anything else = not flagged / unknown.
+  A price drop alone never flags.
+- **AlertAgent** — formats the daily-alert markdown from a
+  list of verdicts, and is honest when the scan is blocked
+  (no Helius key = 0 checked, no invented wallets).
+
+```bash
+python -m src.agents --mint <mint> [--dev <wallet>]
+python -m src.agents --watch --limit 5
+# Exit 1 = flagged, 0 = otherwise, 2 = invalid address/args
+```
+
 ## Clone & use in your project
 
 Developers can clone the repo and use the registry from their own
