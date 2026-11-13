@@ -2,6 +2,31 @@
 
 All notable changes to the Open Rug-Farm Registry.
 
+## v1.8 — 2026-11-13
+
+- Added `src/creativity.py`: 4 small, deterministic, stdlib-only
+  creativity agents — NameAgent (3 original nickname ideas,
+  deterministic from name/ticker/idea + seed, distinct from the
+  input name, profanity blocklist), StoryAgent (2-3 sentence
+  plain-English story of a verdict, honest "not proven a rug"
+  line unless flagged), VisualAgent (badge spec: label, colour
+  name, emoji, summary — collapsed red / thin amber / active
+  green — plus an ASCII sparkline from your own price-change
+  numbers), PostAgent (ready-to-post X draft, always <= 280
+  chars, always #memes #rug #pumpfun + repo link, variants for
+  flagged / watch-only / active, never invents a price or mint).
+  Demo CLI `python -m src.creativity --verdict flagged --symbol
+  XYZ --mc 1000000 --change -80` with --story / --post / --badge
+  / --names modes; exit 0 = ok, 2 = invalid args. Negative
+  numbers work as option values (e.g. --change -80).
+- Added `tests/test_creativity.py` (23 tests, synthetic data only,
+  no network): name distinctness / determinism / profanity,
+  story never claims a rug when not flagged, badge colours,
+  sparkline, post length / hashtags / repo link, CLI exit codes.
+  132 tests total.
+- README: new "Creativity agents" section.
+- No registry entries added: registry is still sample data only.
+
 ## v1.7 — 2026-11-13
 
 - Added `src/agents.py`: 4 small, deterministic, stdlib-only AI
