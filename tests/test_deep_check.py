@@ -21,6 +21,7 @@ from src.deep_check import (
 )
 from src.dev_history import DevHistory, MintRecord
 from src.indexer import PUMP_FUN_PROGRAM
+from src.public_rpc import PublicRpcClient
 
 MINT = "9oJk7eMccQchx3evoN5C5pKQD5Xodb4C1qkhemjjpump"
 DEV = "7kGAXsa7n1qN2FuNoJAGmzebmN9KqqLAHcwj7gvoekKk"
@@ -159,12 +160,27 @@ def _history(dev, outcomes):
     return DevHistory.from_records(dev, records)
 
 
-def _checker(indexer=None, builder=None, registry_data=None):
+def _empty_rpc_client():
+    """A PublicRpcClient whose every method returns no result.
+
+    The keyless path with no data at all: no mint account, no
+    supply, no metadata, no signatures. Used by the tests that
+    assert the degraded behaviour when both sources are empty.
+    """
+
+    def handler(request):
+        return httpx.Response(200, json={"jsonrpc": "2.0", "id": 1, "result": None})
+
+    return PublicRpcClient(client=httpx.Client(transport=httpx.MockTransport(handler)))
+
+
+def _checker(indexer=None, builder=None, registry_data=None, rpc_client=None):
     return DeepChecker(
         http_client=httpx.Client(transport=_dex_transport()),
         indexer=indexer if indexer is not None else StubIndexer(),
         registry_data=registry_data or {},
         history_builder=builder,
+        rpc_client=rpc_client,
     )
 
 
@@ -445,9 +461,14 @@ def test_check_clean_dev_no_signals_is_clean():
 
 
 def test_check_no_key_degrades_to_coin_half():
+    # v2.16: no Helius key no longer skips the dev half — it runs
+    # keyless (public RPC). With an RPC that returns nothing, the
+    # keyless attempt degrades to the same coin-only card, and the
+    # notes say the keyless path was used.
     checker = _checker(
         indexer=StubIndexer(enabled=False),
         builder=StubBuilder(_history(DEV, ["rugged", "rugged"])),
+        rpc_client=_empty_rpc_client(),
     )
     report = checker.check(MINT)
     assert report.coin is not None
@@ -455,10 +476,15 @@ def test_check_no_key_degrades_to_coin_half():
     assert report.dev_wallet is None
     assert report.verdict == "unknown"
     assert any("no Helius key" in n for n in report.notes)
+    assert any("keyless" in n for n in report.notes)
     assert report.dev_history is None
 
 
 def test_check_no_pair_is_insufficient_data():
+    # v2.16: a mint with no DexScreener pair falls back to the
+    # public RPC. With an RPC that returns nothing either, the
+    # card is still insufficient_data — and the notes name both
+    # sources.
     checker = DeepChecker(
         http_client=httpx.Client(transport=_dex_transport([])),
         indexer=StubIndexer(
@@ -466,10 +492,13 @@ def test_check_no_pair_is_insufficient_data():
         ),
         registry_data={},
         history_builder=StubBuilder(_history(DEV, [])),
+        rpc_client=_empty_rpc_client(),
     )
     report = checker.check(MINT)
     assert report.coin is None
     assert report.verdict == "insufficient_data"
+    assert any("DexScreener has no pair" in n for n in report.notes)
+    assert any("no data for this mint either" in n for n in report.notes)
 
 
 def test_check_invalid_mint_raises():
