@@ -2,6 +2,72 @@
 
 All notable changes to the Open Rug-Farm Registry.
 
+## v2.4 — 2026-11-13
+
+- Added `src/kol_audit.py`: KOL / fake-PnL auditor, stdlib +
+  httpx only, no wallet, no funds. PnLAuditor compares a
+  caller's claimed PnL (profit, win rate, trades) against
+  verified on-chain data from an injected client; numbers
+  that cannot be verified are marked "unverified", never
+  invented. Verdicts: consistent (within 10%), exaggerated
+  (claimed > 2x verified, or claimed profit on a verified
+  loss), unverifiable (no data — never accused on no data).
+  Markdown audit report with claimed-vs-verified table and
+  Solscan / DexScreener links. CLI
+  `python -m src.kol_audit --wallet <wallet> --claimed-profit <usd> --claimed-winrate <pct>`,
+  exit 0 = consistent / unverifiable, 1 = exaggerated,
+  2 = invalid args.
+- Added `tests/test_kol_audit.py` (25 tests, mocked HTTP only,
+  synthetic data only). 271 tests total.
+
+## v2.3 — 2026-11-13
+
+- Added `src/watchtower.py`: dev watchtower, stdlib-only, no
+  wallet, no funds. Watchlist add / remove / list (in-memory
+  + JSON file at a caller-given path, never the registry),
+  base58 validation. Watchtower alerts only on NEW mints from
+  watched devs — a seen mint never alerts twice. Levels:
+  urgent (flagged dev launches again), warning
+  (under-review dev), info (new mint, not flagged). A price
+  drop alone never alerts. CLI
+  `python -m src.watchtower --watch <wallet> --check`,
+  exit 0 = ok / no urgent alert, 1 = urgent alert found,
+  2 = invalid args.
+- Added `tests/test_watchtower.py` (22 tests, mocked HTTP only,
+  synthetic data only). 271 tests total (with v2.2 + v2.4).
+
+## v2.2 — 2026-11-13
+
+- Added `src/evidence.py`: Muse-run evidence gathering, stdlib
+  + httpx only, no wallet, no funds moved, NO community
+  dependency — Muse gathers all evidence itself. EvidenceCollector
+  collects DexScreener pair data (price, market cap, liquidity,
+  24h volume/change), Solscan account data via its public API
+  where available (otherwise links only), pump.fun coin/profile
+  links, and Helius tx links when a signature is given; merges
+  the dev's registry rugged mints (evidence links + collapse
+  numbers); numbers not found are None ("n/a"), never invented;
+  completeness score = links found / links expected (a link
+  counts only when its source confirmed the resource).
+  EvidenceVerifier verifies only with >= 2 rugged mints, each
+  with at least one evidence link AND a collapse number — links
+  alone never verify, a price drop alone never flags.
+  EvidenceReport writes a markdown report to a caller-given
+  path (default `data/evidence/<wallet>.md`), never to the
+  registry, with a "Verified by Muse" UTC timestamp line
+  (caller-supplied date or today's real UTC date). Demo CLI
+  `python -m src.evidence --dev <wallet> [--mint ...]
+  [--tx <mint>:<signature> ...] [--out <path>] [--json]`;
+  exit 1 = verified/flagged, 0 = otherwise, 2 = invalid args.
+- Added `tests/test_evidence.py` (28 tests, mocked HTTP only,
+  no network, synthetic data only: collector links/numbers/
+  missing-as-n/a, Solscan balance + failure, registry merge,
+  tx links, completeness, verifier verified/insufficient,
+  links-alone never verifies, report render/write/refusal,
+  gather-and-verify end-to-end, CLI exit codes + JSON).
+  271 tests total.
+- README: new "Muse-run evidence (v2.2)" section.
+
 ## v2.1 — 2026-11-13
 
 - Added `src/live_scan.py`: live Helius scan, stdlib + httpx
