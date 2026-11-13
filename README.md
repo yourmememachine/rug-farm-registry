@@ -333,6 +333,76 @@ The key is never committed — `.env` is git-ignored and the
 workflow reads the secret from the environment. Without a key
 the scan exits 2 and reports "blocked"; it never invents data.
 
+## Muse-run evidence (v2.2)
+
+`src/evidence.py` gathers all the evidence for a rug verdict
+itself — no community submissions, no waiting on anyone else.
+Stdlib + httpx only, no new dependency, no wallet, no funds
+moved, no invented data:
+
+- **EvidenceCollector** — for a dev wallet (+ mints), collects
+  DexScreener pair data (price, market cap, liquidity, 24h
+  volume/change), Solscan account data via its public API
+  where available (otherwise links only), pump.fun coin +
+  profile links, and Helius tx links when a signature is
+  given. Registry rugged mints for the dev are merged in
+  (evidence links + collapse numbers). Numbers that cannot
+  be found are `None` ("n/a" in the report), never invented.
+  The pack carries a completeness score (links found / links
+  expected) — a link counts as found only when its source
+  confirmed the resource.
+- **EvidenceVerifier** — checks the pack against the registry
+  rule: verified only when ≥ 2 rugged mints each have at
+  least one evidence link AND a collapse number. Links alone
+  never verify anything, and a price drop alone never flags.
+- **EvidenceReport** — writes a markdown evidence report to
+  a caller-given path (default `data/evidence/<wallet>.md`),
+  never to the registry. It carries a "Verified by Muse"
+  timestamp line (UTC, caller-supplied date or today's real
+  UTC date — never a fake date).
+
+```bash
+python -m src.evidence --dev <wallet> [--mint <mint> ...] [--tx <mint>:<signature> ...] [--out <path>] [--json]
+# Exit 1 = verified/flagged, 0 = otherwise, 2 = invalid args
+```
+
+## Dev Watchtower (v2.3)
+
+`src/watchtower.py` watches dev wallets and alerts only when a
+watched dev launches a NEW mint — a seen mint never alerts twice.
+Stdlib-only, no wallet, no funds:
+
+- **Watchlist** — add / remove / list dev wallets (in-memory +
+  JSON file at a caller-given path, never the registry).
+  Base58 validation, duplicates rejected.
+- **Watchtower** — checks watched devs against the registry.
+  Alert levels: **urgent** (flagged dev launches again),
+  **warning** (under-review dev), **info** (new mint, not
+  flagged). A price drop alone never alerts.
+
+```bash
+python -m src.watchtower --watch <wallet> --check [--mint <mint> ...] [--json]
+# Exit 0 = ok / no urgent alert, 1 = urgent alert found, 2 = invalid args
+```
+
+## KOL / Fake-PnL Auditor (v2.4)
+
+`src/kol_audit.py` checks a wallet's claimed PnL against real
+on-chain data. Claims are caller-supplied, never invented;
+numbers that cannot be verified are marked "unverified":
+
+- **Verdicts** — **consistent** (claimed profit within 10% of
+  verified), **exaggerated** (claimed profit > 2x verified, or
+  claimed profit on a verified loss), **unverifiable** (no data
+  to check — never accused on no data).
+- **Report** — claimed-vs-verified table with Solscan /
+  DexScreener links.
+
+```bash
+python -m src.kol_audit --wallet <wallet> --claimed-profit <usd> --claimed-winrate <pct>
+# Exit 0 = consistent / unverifiable, 1 = exaggerated, 2 = invalid args
+```
+
 ## Clone & use in your project
 
 Developers can clone the repo and use the registry from their own
@@ -506,6 +576,9 @@ src/labeller.py         rugged / failed_but_honest / inconclusive
 src/cluster.py          funding-graph clustering, 1-2 hops
 src/indexer.py          Helius pump.fun indexer + DexScreener outcomes
 src/daily_scan.py       daily scan CLI: fetch -> label -> cluster -> alert
+src/evidence.py         Muse-run evidence gathering + report (v2.2)
+src/watchtower.py       dev watchtower alerts (v2.3)
+src/kol_audit.py        KOL / fake-PnL auditor (v2.4)
 src/check_cli.py        pre-trade check CLI (exit 1 = flagged)
 src/pump_watch.py       pump.fun watchlist, no key (collapsed / thin / active)
 src/rugfarm.py          single-file stdlib-only SDK for developers (clone-ready)
