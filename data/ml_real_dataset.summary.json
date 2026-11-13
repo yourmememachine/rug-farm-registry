@@ -1,0 +1,46 @@
+{
+  "generated_at": "2026-11-13T18:51:51.517360+00:00",
+  "labelling_rule_version": "real-v1",
+  "sources": {
+    "dexscreener": 199,
+    "https://dexscreener.com/solana/dywr4cjnlhpy1dv9tbshpcbxoaaq3ln3wajj9gw64co9": 1,
+    "https://blockchainreporter.net/what-happened-to-the-hawk-tuah-girl-crypto-coin/": 1,
+    "https://decrypt.co/305225/central-african-republic-president-meme-coin": 1,
+    "https://api.loopholetape.com/token/G1evzzdxVXa7q3ypytdrEWstKdaS2rvDG8q76jDTpump": 1,
+    "https://api.loopholetape.com/token/C1kd6g65hLXLF2xzM6Wu3XueXEN88dqCRBCHsEKhpump": 1,
+    "https://api.loopholetape.com/token/F3cCiTtB5hh7sf2BudYeXm45jPpF4FNbADRjje7MDfrF": 1,
+    "https://api.loopholetape.com/token/7uyptQEZRL5pz318S3oRjHW4iszo9thfd8nkU8ATpump": 1
+  },
+  "summary": {
+    "n_total": 206,
+    "n_rugged": 0,
+    "n_survived": 27,
+    "n_excluded": 179,
+    "n_labelled": 27,
+    "by_source": {
+      "dexscreener": 199,
+      "https://dexscreener.com/solana/dywr4cjnlhpy1dv9tbshpcbxoaaq3ln3wajj9gw64co9": 1,
+      "https://blockchainreporter.net/what-happened-to-the-hawk-tuah-girl-crypto-coin/": 1,
+      "https://decrypt.co/305225/central-african-republic-president-meme-coin": 1,
+      "https://api.loopholetape.com/token/G1evzzdxVXa7q3ypytdrEWstKdaS2rvDG8q76jDTpump": 1,
+      "https://api.loopholetape.com/token/C1kd6g65hLXLF2xzM6Wu3XueXEN88dqCRBCHsEKhpump": 1,
+      "https://api.loopholetape.com/token/F3cCiTtB5hh7sf2BudYeXm45jPpF4FNbADRjje7MDfrF": 1,
+      "https://api.loopholetape.com/token/7uyptQEZRL5pz318S3oRjHW4iszo9thfd8nkU8ATpump": 1
+    },
+    "feature_coverage": {
+      "collapse_pct": 143,
+      "liquidity_usd": 145
+    },
+    "features_always_missing": [
+      "dev_sold_pct",
+      "lp_removed",
+      "time_to_collapse_minutes",
+      "wash_score",
+      "top1_share",
+      "top10_share",
+      "holder_count",
+      "cluster_size"
+    ]
+  },
+  "note": "Labels are observable-market-fact labels (rule real-v1), not verified rug verdicts. Per-record 'source': 'dexscreener' (v2.9 discovery), 'pumpfun' (v2.10 pump.fun launches enriched via DexScreener), or a public source URL for a documented rug (v2.11)."
+}
