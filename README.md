@@ -188,6 +188,35 @@ python -m src.agents --watch --limit 5
 # Exit 1 = flagged, 0 = otherwise, 2 = invalid address/args
 ```
 
+## Creativity agents
+
+Four more small, deterministic agents in `src/creativity.py`
+that present rug-check findings in original, human-readable
+ways. Stdlib only, no new dependency, no invented data — they
+only re-present numbers and verdicts you already have:
+
+- **NameAgent** — 3 original nickname ideas for a watchlist
+  entry, deterministic from name/ticker/idea + seed, always
+  distinct from the input name, with a profanity blocklist.
+- **StoryAgent** — a 2–3 sentence plain-English story of a
+  verdict: what happened, what the verdict means, what to
+  watch. Never claims a rug without a flagged verdict — any
+  other verdict gets an honest "not proven a rug" line.
+- **VisualAgent** — a coin-card badge spec (label, colour
+  name, emoji, one-line summary: collapsed = red, thin =
+  amber, active = green) plus an ASCII sparkline drawn from
+  your own price-change numbers.
+- **PostAgent** — a ready-to-post X draft, always ≤ 280
+  chars, always with `#memes #rug #pumpfun` and the repo link,
+  with a variant for flagged / watch-only / active. It never
+  invents a price or a mint.
+
+```bash
+python -m src.creativity --verdict flagged --symbol XYZ --mc 1000000 --change -80
+python -m src.creativity --verdict active --symbol GATO --mc 5009361 --change -16.7 --post
+# Modes: --story / --post / --badge / --names (default: all). Exit 0 = ok, 2 = invalid args.
+```
+
 ## Clone & use in your project
 
 Developers can clone the repo and use the registry from their own
