@@ -469,6 +469,53 @@ python -m src.dev_history --wallet <address> [--limit N] [--json]
 # Without HELIUS_API_KEY it exits 2 and changes nothing.
 ```
 
+## ML risk model (v2.8)
+
+`src/ml_model.py` adds a learned score next to the hand-written
+rules — it never replaces them. The ≥ 2 rugged mints + evidence
+rule is still the only flagging path; the model is an advisory
+probability with an explanation. Stdlib only (no sklearn, no
+numpy), no wallet, no funds moved, no invented data:
+
+- **Features** — one fixed 10-feature vector per mint: collapse
+  %, dev sell %, LP removed, time-to-collapse, wash score, top-1
+  / top-10 holder share, holder count, stealth-cluster size,
+  liquidity. A missing feature is flagged as missing, never
+  silently zero-filled: it is imputed with the training mean, so
+  it contributes exactly 0 to the log-odds, and it is listed in
+  the prediction.
+- **Model** — logistic regression, gradient descent with L2
+  regularisation, written from scratch. Trains on OutcomeTracker
+  JSON records (verdict + later outcome) with a deterministic
+  80/20 held-out split and accuracy / precision / recall
+  reporting. Under 10 labelled records (or under 2 per class)
+  it refuses with "insufficient training data" instead of
+  pretending the model is good.
+- **Explainable predictions** — `predict_risk` returns a
+  probability + band (low < 0.33, medium < 0.67, high ≥ 0.67) +
+  the top 3 contributing features with direction ("raises risk"
+  / "lowers risk"), so a human can see why the score is what it
+  is. No black box.
+- **Synthetic data** — a small labelled dataset ships ONLY for
+  tests/demo, every record marked `"synthetic": true`. Held-out
+  on it: accuracy 1.00, precision 1.00, recall 1.00 — the data
+  is clearly separable, so that is a pipeline check, not
+  real-world performance; real OutcomeTracker data is still too
+  small to train on.
+- **Dev-history integration** — `DevHistory` gains an optional
+  advisory ML score (`--ml-model <model.json>`), per-mint
+  probabilities plus the max risk, shown next to the rule
+  verdict. It never changes any verdict.
+
+```bash
+python -m src.ml_model --train outcomes.json --model model.json
+python -m src.ml_model --demo --model model.json
+python -m src.ml_model --predict mint.json --model model.json [--json]
+python -m src.ml_model --evaluate --model model.json --data outcomes.json
+# Exit 0 = ok, 2 = invalid args / insufficient data / bad file.
+python -m src.dev_history --wallet <address> --ml-model model.json
+```
+
 ## Clone & use in your project
 
 Developers can clone the repo and use the registry from their own
