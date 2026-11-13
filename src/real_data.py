@@ -425,28 +425,36 @@ def build_record(obs: dict, fetched_at: datetime, source: str = "dexscreener") -
 
 
 def summarize(records: list[dict]) -> dict:
-    """Counts, class balance and feature coverage for a dataset."""
+    """Counts, class balance and feature coverage for a dataset.
+
+    ``feature_coverage`` counts all 10 ml_model features (see
+    ``src.ml_model.FEATURE_NAMES``) — v2.15 enrichment fills the
+    8 that DexScreener leaves missing, so the summary now shows
+    the before/after per feature instead of only the 2
+    DexScreener provides. ``features_always_missing`` lists the
+    features present on zero records.
+    """
     rugged = sum(1 for r in records if r.get("outcome") == "rugged")
     survived = sum(1 for r in records if r.get("outcome") == "survived")
     excluded = sum(1 for r in records if r.get("outcome") == "excluded")
     coverage = {}
-    for feature in ("collapse_pct", "liquidity_usd"):
+    for feature in (
+        "collapse_pct",
+        "dev_sold_pct",
+        "lp_removed",
+        "time_to_collapse_minutes",
+        "wash_score",
+        "top1_share",
+        "top10_share",
+        "holder_count",
+        "cluster_size",
+        "liquidity_usd",
+    ):
         coverage[feature] = sum(
             1 for r in records if r.get(feature) is not None
         )
     missing_features = [
-        name
-        for name in (
-            "dev_sold_pct",
-            "lp_removed",
-            "time_to_collapse_minutes",
-            "wash_score",
-            "top1_share",
-            "top10_share",
-            "holder_count",
-            "cluster_size",
-        )
-        if not any(name in r for r in records)
+        name for name, count in coverage.items() if count == 0
     ]
     by_source: dict[str, int] = {}
     for record in records:

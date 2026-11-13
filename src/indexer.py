@@ -296,9 +296,15 @@ class HeliusIndexer:
                     if not isinstance(instr, dict):
                         continue
                     parsed = instr.get("parsed") or {}
+                    # Memo instructions parse to a string, not a
+                    # dict — skip non-dict shapes, never crash.
+                    if not isinstance(parsed, dict):
+                        continue
                     if parsed.get("type") != "transfer":
                         continue
                     info = parsed.get("info") or {}
+                    if not isinstance(info, dict):
+                        continue
                     src, dst = info.get("source"), info.get("destination")
                     if src and dst and src != dst and (src in wanted or dst in wanted):
                         transfers.append(

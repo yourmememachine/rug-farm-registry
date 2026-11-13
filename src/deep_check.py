@@ -1,4 +1,4 @@
-"""Deep check (v2.12): one command, one full card for a mint.
+"""Deep check (v2.12, keyless fallbacks v2.16): one command, one full card for a mint.
 
 The manual check that used to need four tools — DexScreener for the
 coin, Solscan for the dev wallet, the pump.fun profile for the dev's
@@ -12,43 +12,62 @@ command:
    with ``src.labeller`` on the same peak estimate the indexer
    uses (peak ~= current / (1 + 24h%) when 24h is negative; LP
    removal inferred from liquidity < $1,000; dev sell is 0.0
-   unless proven — DexScreener does not prove one).
+   unless proven — DexScreener does not prove one). When
+   DexScreener has no pair for the mint (never listed), the
+   public Solana RPC fills the card instead: supply, holders,
+   top-holder shares, mint/freeze authority, Metaplex
+   name/symbol — no price on-chain, and the card says so.
+   Nothing is invented: a missing piece stays missing.
 2. **Creator / dev** — resolved via Helius DAS ``getAsset``
-   (the Metaplex creators array), falling back to the fee payer
+   (the Metaplex creators array) when a Helius key is set;
+   otherwise the same creators array from the Metaplex metadata
+   account via the public RPC, falling back to the fee payer
    of the mint's oldest fetched creation transaction. If
-   ``HELIUS_API_KEY`` is missing, the dev half reports
-   "dev unknown — no Helius key" and the coin half still
-   completes. A creator is never invented: no creators found
-   means dev unknown, full stop.
+   ``HELIUS_API_KEY`` is missing, the dev half runs keyless
+   instead of being skipped: creator from metadata, dev history
+   from the dev's last 100 signatures, funding from the dev +
+   top 5 early buyers. A creator is never invented: no creators
+   found means dev unknown, full stop.
 3. **Dev history** — the existing ``DevHistoryBuilder`` for the
    resolved dev (registry verdict, rugged-mint count, launches
    where known). The flagging rule is unchanged: ``flagged``
-   still needs >= 2 rugged mints + evidence.
+   still needs >= 2 rugged mints + evidence. Keyless, the
+   history is bounded to the last 100 signatures — old rugs can
+   be missed, and the report says so.
 4. **Side wallets** — funding transfers for the dev (who funded
    the dev, who the dev funded) plus the mint's early buyers
    (token-balance diffs in the first signatures), run through
    ``StealthClusterDetector``. Each link carries its evidence:
    amount, date, signature. A suspicious pattern alone is a
-   "high-risk pattern", never "flagged".
+   "high-risk pattern", never "flagged". Keyless, the funding
+   scan covers the dev + top 5 early buyers (20 signatures
+   each) — the report says so.
 5. **Wash** — ``WashScore`` only when holder data is supplied
    (``--holders`` / ``--top10``); DexScreener does not publish
    holder shares, so without them the wash section is
-   "insufficient data", never a guess.
+   "insufficient data", never a guess. When the coin card came
+   from the public RPC, its holder data (holder count, top-10
+   shares) scores the wash section instead.
 
 Honest limits, stated in the report, not hidden:
 - The funding scan covers the most recent signatures per wallet
   (bounded). Funding from long ago — e.g. the wallet-creation
   funding of a dev — is out of reach without full-history
-  paging, so an old funder link can be missed.
+  paging, so an old funder link can be missed. Keyless, the
+  bound is tighter (last 100 signatures for the dev history,
+  20 per wallet for funding) and the report says so.
 - Early buyers come from the fetched signature window on the
   mint; for an old mint the window may not reach launch.
 - Holder-cluster data (Bubblemaps-style) has no public API, so
   the cluster section is funding clusters only.
+- The public RPC rate-limits by IP. A throttled call is
+  reported as missing data, never faked.
 
 Exit codes: 0 = done (not flagged), 1 = flagged dev,
-2 = invalid args / invalid address / network error. A missing
-Helius key is NOT an error for the whole command — it degrades
-to the coin half with a clear note.
+2 = invalid args / invalid address / network error / neither
+DexScreener nor the public RPC had any data for the mint.
+A missing Helius key is NOT an error for the whole command —
+it degrades to the keyless path with a clear note.
 
 Stdlib + httpx only, no wallet, no funds moved, no invented data.
 """
@@ -64,9 +83,15 @@ from pathlib import Path
 import httpx
 
 from .advanced import FundingEvent, StealthClusterDetector, wash_score
+from .dev_check import parse_creation_any
 from .dev_history import DevHistory, DevHistoryBuilder
 from .indexer import HeliusIndexer, PUMP_FUN_PROGRAM
 from .labeller import MintEvent, label_outcome
+from .public_rpc import (
+    PublicRpcClient,
+    PublicRpcIndexer,
+    fetch_rpc_coin,
+)
 from .pump_watch import TOKENS_URL, parse_token_pair
 from .registry import check_wallet, is_valid_solana_address, load_registry
 
@@ -104,6 +129,17 @@ DEFAULT_BUYER_SIGNATURES = 50
 DEFAULT_FUNDING_LIMIT = 20
 # How many of the largest early buyers get a funding lookup.
 MAX_FUNDING_WALLETS = 20
+# Keyless (no Helius key) bounds for the public-RPC path. Every
+# public-RPC transaction fetch is a paced call, so the keyless
+# path is bounded harder than the keyed one — and the report
+# says so wherever the bound bites.
+KEYLESS_SIGNATURE_LIMIT = 100  # dev-history signature window
+KEYLESS_BUYER_LIMIT = 20  # mint signatures scanned for early buyers
+KEYLESS_MAX_FUNDING_WALLETS = 5  # dev + top N early buyers get a funding lookup
+# Creation-tx paging budget: how many 100-signature pages the
+# creator lookup walks back through. BagsBack needed 7 pages
+# (661 signatures) — 10 covers 1,000.
+MAX_CREATION_PAGES = 10
 
 
 def _as_float(value: object) -> float | None:
@@ -243,6 +279,50 @@ class CoinFetcher:
 # ======================================================================
 # Creator resolution (Helius DAS getAsset, creation-tx fallback)
 # ======================================================================
+def _oldest_creation_tx(indexer, mint: str, page_size: int = 100,
+                        max_pages: int = MAX_CREATION_PAGES):
+    """The mint's creation transaction, by paging its signatures
+    backwards (bounded).
+
+    The creation is the OLDEST signature, so each page's tail is
+    checked: a full page whose tail is not the creation means
+    older pages exist, so page back with ``before``. A short
+    page's tail is the oldest signature overall. Strict: only a
+    real pump.fun create instruction counts (see
+    ``_is_creation_tx``) — a buy is never mistaken for a
+    creation. Returns the transaction dict, or None when no
+    creation was found in the fetched pages. Indexers without
+    ``before`` support (old stubs) degrade to a single page.
+    Raises when the signature listing itself fails — the caller
+    turns that into a note.
+    """
+    seen_tails: set[str] = set()
+    before = None
+    for _ in range(max_pages):
+        try:
+            sigs = indexer.get_signatures(mint, limit=page_size, before=before)
+        except TypeError:
+            # Indexer without `before` support: one page only.
+            sigs = indexer.get_signatures(mint, limit=page_size)
+        if not sigs:
+            return None
+        tail = sigs[-1]
+        tail_sig = tail.get("signature") if isinstance(tail, dict) else None
+        if not tail_sig or tail_sig in seen_tails:
+            return None
+        seen_tails.add(tail_sig)
+        try:
+            tx = indexer.get_transaction(tail_sig)
+        except Exception:  # noqa: BLE001 — one failed fetch is not fatal
+            tx = None
+        if tx and _is_creation_tx(tx, mint):
+            return tx
+        if len(sigs) < page_size:
+            return None  # last page: its tail is the oldest signature
+        before = tail_sig
+    return None
+
+
 def resolve_creator(
     indexer, mint: str, signature_limit: int = 50
 ) -> tuple[str | None, str, str | None]:
@@ -253,8 +333,9 @@ def resolve_creator(
     ``"creation_tx"`` (fee payer of the oldest fetched creation
     transaction), or ``"none"``. A creator is never invented: no
     creators found means (None, "none", reason). The creation-tx
-    fallback only reaches as far back as the fetched signature
-    window — for an old mint it may not reach the creation tx.
+    fallback pages the mint's signature history backwards
+    (bounded, 10 pages) so an old mint's creation is reached even
+    when the newest window does not contain it.
     """
     # Primary: DAS getAsset -> Metaplex creators array.
     try:
@@ -277,28 +358,25 @@ def resolve_creator(
                 key=lambda c: (bool(c.get("verified")), c.get("share") or 0),
             )
             return best["address"], "das", None
-    # Fallback: fee payer of the oldest fetched signature on the mint.
+    # Fallback: fee payer of the oldest fetched creation transaction.
+    # The signature history is paged backwards (bounded) so an old
+    # mint's creation is reached even when the newest window does
+    # not contain it.
     try:
-        sigs = indexer.get_signatures(mint, limit=signature_limit)
+        tx = _oldest_creation_tx(indexer, mint, page_size=signature_limit)
     except Exception as exc:  # noqa: BLE001 — signatures down is not fatal
         return None, "none", (
             "creator lookup failed: DAS returned no creators"
             + (f" ({das_error})" if das_error else "")
             + f"; signature lookup failed: {exc}"
         )
-    if not sigs:
-        return None, "none", "creator lookup failed: DAS returned no creators and the mint has no signatures"
-    oldest = sigs[-1]
-    sig = oldest.get("signature") if isinstance(oldest, dict) else None
-    if not sig:
-        return None, "none", "creator lookup failed: DAS returned no creators and the oldest signature has no id"
-    try:
-        tx = indexer.get_transaction(sig)
-    except Exception as exc:  # noqa: BLE001 — one failed fetch is not fatal
-        return None, "none", f"creator lookup failed: DAS returned no creators; creation-tx fetch failed: {exc}"
-    if not tx:
-        return None, "none", "creator lookup failed: DAS returned no creators; creation tx could not be fetched"
-    creation = _parse_transaction(tx)
+    if tx is None:
+        return None, "none", (
+            "creator lookup failed: DAS returned no creators"
+            + (f" ({das_error})" if das_error else "")
+            + "; no creation transaction found in the fetched signature window"
+        )
+    creation = parse_creation_any(tx) or _parse_transaction(tx)
     if creation is None or not creation.dev_wallet:
         return None, "none", "creator lookup failed: DAS returned no creators and the oldest transaction is not a creation"
     return (
@@ -315,8 +393,15 @@ def _is_creation_tx(tx: dict, mint: str) -> bool:
     Strict on purpose: the indexer's balance-diff fallback would
     also call a first buy a "creation" (the mint appears only in
     post balances), which would falsely mark the early-buyer
-    window as having reached creation.
+    window as having reached creation. Two shapes count:
+    the parsed ``create`` instruction (Helius data), and the raw
+    one (public-RPC data — the public RPC does not parse pump.fun
+    instructions, so the create arrives as base58 data starting
+    with the create discriminator; see
+    ``src.dev_check.parse_creation_any``).
     """
+    if not isinstance(tx, dict):
+        return False
     message = tx.get("transaction", {}).get("message", {})
     for instr in message.get("instructions", []) or []:
         if not isinstance(instr, dict):
@@ -324,8 +409,10 @@ def _is_creation_tx(tx: dict, mint: str) -> bool:
         if instr.get("programId") != PUMP_FUN_PROGRAM:
             continue
         parsed = instr.get("parsed") or {}
+        if not isinstance(parsed, dict):
+            continue
         info = parsed.get("info") or {}
-        if info.get("mint") == mint:
+        if isinstance(info, dict) and info.get("mint") == mint:
             return True
         accounts = instr.get("accounts") or []
         if accounts:
@@ -333,7 +420,8 @@ def _is_creation_tx(tx: dict, mint: str) -> bool:
             acct = first.get("pubkey") if isinstance(first, dict) else first
             if acct == mint:
                 return True
-    return False
+    creation = parse_creation_any(tx)
+    return creation is not None and creation.mint == mint
 
 
 # ======================================================================
@@ -438,6 +526,7 @@ def build_side_wallets(
     early_buyers: list[dict],
     launch_at: int | None,
     funding_limit: int = DEFAULT_FUNDING_LIMIT,
+    max_funding_wallets: int = MAX_FUNDING_WALLETS,
 ) -> tuple[list[dict], list[FundingEvent], list[str]]:
     """Side-wallet links + stealth-cluster funding events.
 
@@ -462,7 +551,7 @@ def build_side_wallets(
     wallets = [w for w in [dev_wallet] if w]
     top_buyers = sorted(
         early_buyers, key=lambda b: b.get("amount") or 0, reverse=True
-    )[:MAX_FUNDING_WALLETS]
+    )[:max_funding_wallets]
     wallets += [b["wallet"] for b in top_buyers]
     if not wallets:
         return [], [], ["no wallets to check funding for"]
@@ -616,10 +705,11 @@ class DeepCheckReport:
     mint: str
     coin: dict | None
     dev_wallet: str | None
-    dev_method: str  # "das" | "creation_tx" | "none"
+    dev_method: str  # "das" | "metadata" | "creation_tx" | "none"
     dev_note: str | None
     dev_history: DevHistory | None
     registry_check: dict | None
+    coin_note: str | None = None
     side_links: list[dict] = field(default_factory=list)
     clusters: list[dict] = field(default_factory=list)
     wash: dict | None = None
@@ -638,6 +728,7 @@ class DeepCheckReport:
             "flagged": self.flagged,
             "pattern_signals": self.pattern_signals,
             "coin": self.coin,
+            "coin_note": self.coin_note,
             "dev_wallet": self.dev_wallet,
             "dev_method": self.dev_method,
             "dev_note": self.dev_note,
@@ -659,6 +750,11 @@ class DeepCheckReport:
             c = self.coin
             name = f"{c.get('name') or ''} ({c.get('symbol') or '?'})".strip()
             lines.append(f"  {name}")
+            if c.get("source") == "public_rpc":
+                lines.append(
+                    "  source: public Solana RPC (no DexScreener pair — "
+                    "no price, market cap or volume on-chain)"
+                )
             lines.append(
                 f"  price: ${c['price_usd']:,.8f}"
                 if c.get("price_usd") is not None
@@ -684,6 +780,18 @@ class DeepCheckReport:
                 if c.get("change_24h_pct") is not None
                 else "  24h change: n/a"
             )
+            if c.get("supply") is not None:
+                lines.append(f"  supply: {c['supply']:,.0f}")
+            if c.get("mint_authority"):
+                lines.append(f"  mint authority: {c['mint_authority']}")
+            if c.get("freeze_authority"):
+                lines.append(f"  freeze authority: {c['freeze_authority']}")
+            if c.get("holder_count") is not None:
+                lines.append(f"  holders: {c['holder_count']}")
+            if c.get("top1_share") is not None:
+                lines.append(f"  top holder: {c['top1_share']:.1%} of supply")
+            if c.get("top10_share") is not None:
+                lines.append(f"  top 10 holders: {c['top10_share']:.1%} of supply")
             buys, sells = c.get("txns_24h_buys"), c.get("txns_24h_sells")
             if buys is not None or sells is not None:
                 lines.append(f"  txns 24h: {buys or 0} buys / {sells or 0} sells")
@@ -692,6 +800,8 @@ class DeepCheckReport:
             if c.get("pair_created_at"):
                 lines.append(f"  pair created: {c['pair_created_at']}")
             lines.append(f"  {c.get('dexscreener_url', '')}")
+            if self.coin_note:
+                lines.append(f"  Note: {self.coin_note}")
         lines.append("")
         # --- Dev ----------------------------------------------------
         lines.append("Dev")
@@ -797,7 +907,11 @@ class DeepChecker:
     registry dict (``{}`` = none); ``history_builder`` overrides
     the default ``DevHistoryBuilder`` (tests pass a stub).
     ``ml_model`` is an optional loaded ``RugRiskModel`` — advisory
-    only, it never changes a verdict.
+    only, it never changes a verdict. ``rpc_client`` is an
+    injectable ``PublicRpcClient`` for the keyless path (no
+    Helius key / no DexScreener pair); when omitted a real one
+    is created lazily — tests pass a stubbed one so no live
+    call is ever made.
     """
 
     def __init__(
@@ -807,12 +921,20 @@ class DeepChecker:
         registry_data: dict | None = None,
         history_builder=None,
         ml_model=None,
+        rpc_client: PublicRpcClient | None = None,
     ):
         self._http_client = http_client
         self.indexer = indexer if indexer is not None else HeliusIndexer()
         self.registry_data = registry_data or {}
         self.history_builder = history_builder
         self.ml_model = ml_model
+        self._rpc_client = rpc_client
+
+    def _rpc(self) -> PublicRpcClient:
+        """The public-RPC client for the keyless path (one per checker)."""
+        if self._rpc_client is None:
+            self._rpc_client = PublicRpcClient()
+        return self._rpc_client
 
     def check(
         self,
@@ -827,19 +949,51 @@ class DeepChecker:
 
         Raises ValueError for an invalid mint address and
         RuntimeError on a DexScreener network failure. Every
-        Helius half degrades to a note instead of failing the
-        whole check — a missing key only costs the dev half.
+        Helius half degrades to the keyless public-RPC path
+        instead of failing the whole check — a missing key only
+        costs the full-history depth, and a missing DexScreener
+        pair only costs the market fields.
         """
         if not is_valid_solana_address(mint):
             raise ValueError(f"'{mint}' is not a valid Solana address.")
         notes: list[str] = []
 
-        # 1. Coin half (DexScreener, no key).
+        # 1. Coin half (DexScreener, no key) — public-RPC fallback
+        # when DexScreener has no pair for the mint.
         coin = CoinFetcher(self._http_client).fetch(mint)
+        coin_note = None
         if coin is None:
             notes.append("DexScreener has no pair for this mint.")
+            try:
+                coin, rpc_note, _metadata = fetch_rpc_coin(self._rpc(), mint)
+            except Exception as exc:  # noqa: BLE001 — RPC down is not fatal
+                coin = None
+                notes.append(f"Public-RPC coin fallback failed: {exc}")
+            if coin is not None:
+                coin_note = (
+                    "No DexScreener pair — coin data from the public "
+                    "Solana RPC. " + (rpc_note or "")
+                ).strip()
+                notes.append(coin_note)
+            else:
+                notes.append(
+                    "Public Solana RPC has no data for this mint either."
+                )
 
-        # 2-4. Dev halves (Helius) — degrade cleanly without a key.
+        # 2-4. Dev halves. Keyed (Helius) when a key is set;
+        # keyless (public RPC) otherwise — same code path, the
+        # keyless indexer answers getAsset from the Metaplex
+        # metadata account and caps the history windows.
+        keyless = not self.indexer.enabled
+        indexer = PublicRpcIndexer(self._rpc()) if keyless else self.indexer
+        if keyless:
+            notes.append(
+                "no Helius key set — dev half is keyless (public "
+                "Solana RPC): creator from the Metaplex metadata "
+                "account, dev history from the last "
+                f"{KEYLESS_SIGNATURE_LIMIT} signatures; older history "
+                "needs a Helius key."
+            )
         dev_wallet: str | None = None
         dev_method = "none"
         dev_note: str | None = None
@@ -848,78 +1002,97 @@ class DeepChecker:
         side_links: list[dict] = []
         clusters: list[dict] = []
         early_buyers: list[dict] = []
-        if not self.indexer.enabled:
-            dev_note = (
-                "no Helius key. "
-                "Set HELIUS_API_KEY for the dev half; the coin half above is complete."
-            )
-            notes.append(
-                "Dev half skipped (no Helius key). "
-                "Creator, dev history and side wallets need the key."
-            )
+        dev_wallet, dev_method, dev_note = resolve_creator(
+            indexer,
+            mint,
+            signature_limit=KEYLESS_SIGNATURE_LIMIT if keyless else 50,
+        )
+        if keyless and dev_method == "das":
+            # The keyless indexer answers getAsset from the
+            # Metaplex metadata account — say so, don't call it DAS.
+            dev_method = "metadata"
+        if dev_wallet is None:
+            notes.append(f"Creator could not be resolved: {dev_note}")
         else:
-            dev_wallet, dev_method, dev_note = resolve_creator(self.indexer, mint)
-            if dev_wallet is None:
-                notes.append(f"Creator could not be resolved: {dev_note}")
+            registry_check = check_wallet(
+                self.registry_data, dev_wallet, mint=mint
+            )
+            if self.history_builder is not None:
+                builder = self.history_builder
+                effective_limit = history_limit
+            elif keyless:
+                builder = DevHistoryBuilder(indexer, self.registry_data)
+                effective_limit = min(history_limit, KEYLESS_SIGNATURE_LIMIT)
             else:
-                registry_check = check_wallet(
-                    self.registry_data, dev_wallet, mint=mint
+                builder = DevHistoryBuilder(self.indexer, self.registry_data)
+                effective_limit = history_limit
+            try:
+                history = builder.build(
+                    dev_wallet, limit=effective_limit, ml_model=self.ml_model
                 )
-                builder = self.history_builder or DevHistoryBuilder(
-                    self.indexer, self.registry_data
-                )
-                try:
-                    history = builder.build(
-                        dev_wallet, limit=history_limit, ml_model=self.ml_model
-                    )
-                except Exception as exc:  # noqa: BLE001 — history down is not fatal
-                    history = None
-                    notes.append(f"Dev history failed: {exc}")
-            # Early buyers are about the mint, not the dev — fetch
-            # them whenever Helius is available.
-            early_buyers, reached, buyer_note = fetch_early_buyers(
-                self.indexer, mint, limit=buyer_limit
+            except Exception as exc:  # noqa: BLE001 — history down is not fatal
+                history = None
+                notes.append(f"Dev history failed: {exc}")
+        # Early buyers are about the mint, not the dev — fetch
+        # them on either path. Keyless, the window is capped:
+        # every transaction fetch is a paced public-RPC call.
+        early_buyers, reached, buyer_note = fetch_early_buyers(
+            indexer,
+            mint,
+            limit=min(buyer_limit, KEYLESS_BUYER_LIMIT) if keyless else buyer_limit,
+        )
+        if buyer_note:
+            notes.append(buyer_note)
+        elif not reached:
+            notes.append(
+                "Early-buyer window did not reach the mint's creation — "
+                "'early' means early within the fetched window."
             )
-            if buyer_note:
-                notes.append(buyer_note)
-            elif not reached:
-                notes.append(
-                    "Early-buyer window did not reach the mint's creation — "
-                    "'early' means early within the fetched window."
+        launch_at = None
+        if coin and coin.get("pair_created_at"):
+            try:
+                launch_at = int(
+                    datetime.fromisoformat(
+                        coin["pair_created_at"]
+                    ).timestamp()
                 )
-            launch_at = None
-            if coin and coin.get("pair_created_at"):
-                try:
-                    launch_at = int(
-                        datetime.fromisoformat(
-                            coin["pair_created_at"]
-                        ).timestamp()
-                    )
-                except ValueError:
-                    launch_at = None
-            links, events, side_notes = build_side_wallets(
-                self.indexer,
-                dev_wallet,
-                mint,
-                early_buyers,
-                launch_at,
-                funding_limit=funding_limit,
+            except ValueError:
+                launch_at = None
+        links, events, side_notes = build_side_wallets(
+            indexer,
+            dev_wallet,
+            mint,
+            early_buyers,
+            launch_at,
+            funding_limit=funding_limit,
+            max_funding_wallets=(
+                KEYLESS_MAX_FUNDING_WALLETS if keyless else MAX_FUNDING_WALLETS
+            ),
+        )
+        side_links = links
+        notes.extend(side_notes)
+        if keyless:
+            notes.append(
+                "Keyless funding scan: dev + top "
+                f"{KEYLESS_MAX_FUNDING_WALLETS} early buyers, "
+                f"{funding_limit} signatures each; earlier history "
+                "needs a Helius key."
             )
-            side_links = links
-            notes.extend(side_notes)
-            if events:
-                found = StealthClusterDetector().detect(events)
-                clusters = [
-                    {
-                        "members": c.members,
-                        "funders": c.funders,
-                        "signals": c.signals,
-                        "evidence": c.evidence,
-                    }
-                    for c in found
-                ]
+        if events:
+            found = StealthClusterDetector().detect(events)
+            clusters = [
+                {
+                    "members": c.members,
+                    "funders": c.funders,
+                    "signals": c.signals,
+                    "evidence": c.evidence,
+                }
+                for c in found
+            ]
 
-        # 5. Wash — only when holder data is supplied.
+        # 5. Wash — only when holder data is supplied, or when the
+        # coin card came from the public RPC (it carries holder
+        # data DexScreener does not publish).
         wash = None
         if holders is not None or top10:
             result = wash_score(
@@ -928,6 +1101,24 @@ class DeepChecker:
                 None,
                 coin.get("volume_24h_usd") if coin else None,
                 coin.get("market_cap_usd") if coin else None,
+            )
+            wash = {
+                "score": result.score,
+                "level": result.level,
+                "reasons": result.reasons,
+                "insufficient_data": result.insufficient_data,
+            }
+        elif (
+            coin is not None
+            and coin.get("source") == "public_rpc"
+            and (coin.get("top10_shares") or coin.get("top1_share") is not None)
+        ):
+            result = wash_score(
+                coin.get("holder_count"),
+                coin.get("top10_shares"),
+                coin.get("top1_share"),
+                None,
+                None,
             )
             wash = {
                 "score": result.score,
@@ -980,6 +1171,7 @@ class DeepChecker:
             dev_note=dev_note,
             dev_history=history,
             registry_check=registry_check,
+            coin_note=coin_note,
             side_links=side_links,
             clusters=clusters,
             wash=wash,
@@ -1100,6 +1292,10 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(report.to_dict(), indent=2))
     else:
         print(report.to_text())
+    if report.coin is None and report.dev_wallet is None:
+        # Neither DexScreener nor the public RPC had anything
+        # for this mint — say so with exit 2, never a guessed card.
+        return EXIT_BLOCKED
     return EXIT_FLAGGED if report.flagged else EXIT_OK
 
 

@@ -158,7 +158,10 @@ def parse_funding_transfers(tx: dict) -> list[dict]:
     already does this shape in ``fetch_funding_transfers`` — this
     is the same parsing, extracted so the chain index can store
     the edges itself. Returns [{"from", "to", "amount_lamports",
-    "signature"}].
+    "signature"}]. Some instructions parse to a string, not a
+    dict — the Memo program's ``parsed`` is the memo text itself
+    — so non-dict ``parsed``/``info`` shapes are skipped, never
+    crashed on.
     """
     if not isinstance(tx, dict):
         return []
@@ -170,9 +173,13 @@ def parse_funding_transfers(tx: dict) -> list[dict]:
         if not isinstance(instr, dict):
             continue
         parsed = instr.get("parsed") or {}
+        if not isinstance(parsed, dict):
+            continue
         if parsed.get("type") != "transfer":
             continue
         info = parsed.get("info") or {}
+        if not isinstance(info, dict):
+            continue
         src, dst = info.get("source"), info.get("destination")
         if not src or not dst or src == dst:
             continue
