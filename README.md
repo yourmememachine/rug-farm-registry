@@ -522,39 +522,52 @@ python -m src.dev_history --wallet <address> --ml-model model.json
 DexScreener's public API (no key) and labels them from real
 observable market facts, so the model can be trained and
 evaluated on the real world instead of synthetic data. The
-labelling rule ("real-v1") was fixed before any fetch and is
+labelling rule ("real-v2", v2.13 — loosened from "real-v1"
+where v2.11's verified evidence proved v1 too strict) is
 saved on every record in `data/ml_real_dataset.json`:
 
-- **Rugged-like** — fresh collapse (24h change ≤ −70% AND
+- **Rugged-like** — fresh collapse (24h change ≤ −90% AND
   liquidity < $1,000 AND 24h volume < $1,000 AND pair age ≥ 1
-  day) OR long-dead (liquidity < $100 AND 24h volume < $100
-  AND market cap < $5,000 AND pair age ≥ 7 days).
+  day) OR long-dead (liquidity < $2,500 AND 24h volume < $500
+  AND market cap < $5,000 AND pair age ≥ 5 days).
 - **Survived** — liquidity ≥ $10,000 AND 24h volume ≥ $5,000
   AND 24h change > −30% AND pair age ≥ 7 days.
 - **Excluded** — everything else; the ambiguous middle is
   excluded, not forced into either class. Missing data never
   satisfies a threshold.
 
-**Honest result: insufficient real data.** The committed dataset
-has 206 real tokens (fetched 2026-11-13) labelled **0
-rugged-like, 27 survived, 179 excluded**, and `src.ml_model
---train` refuses it ("need at least 2 rugged examples", exit
-2). There are no real held-out metrics — no accuracy,
-precision or recall on real data — and no synthetic data was
-used to fake a "real" claim. Why: DexScreener's public
-discovery (profiles, boosts, search) only surfaces tokens alive
-enough to be listed or searched; dead tokens are invisible to
-it. All 16 tokens that fell ≥ 70% in 24h were under 1 day old
-(launch noise) or still liquid and trading; only 1 of 199 had
-liquidity under $1,000. Real feature coverage is also thin:
-only collapse % (a 24h-fall proxy for peak-to-current collapse,
-143/206) and liquidity (145/206) are present — the other 8 of
-the model's 10 features are always missing on DexScreener data.
-Labels here are observable-market-fact labels, not verified rug
-verdicts (DexScreener provides no dev-wallet, LP-removal or
-dev-sell evidence). A real proof needs rugged examples from a
-source that surfaces dead tokens, e.g. Helius dev-wallet
-histories.
+**v2.13 — the rule was loosened and the model trained on real
+data for the first time.** Re-labelling the 206-record dataset
+with real-v2 (`python -m src.real_data --relabel`, no
+re-fetch) gives **12 rugged-like, 27 survived, 167
+excluded**: the 4 documented small rugs (ABDUL, FOMOGIVING,
+LIQUID, ser) plus 8 DexScreener dead clones v1 missed (4x WIF,
+2x MOON, 2x FROG; market caps $330–$2,179, liquidity
+$589–$2,493, volume $0.50–$85.72, ages 24–1,021 days). The
+famous three (LIBRA, HAWK, CAR) are still excluded — they hold
+$4.4k–$201k liquidity and $870k–$2.9M market cap, so no
+liquidity branch catches them; they were rugged by insider
+selling, not pool drainage. Training on the re-labelled
+dataset (`python -m src.ml_model --train
+data/ml_real_dataset.json --model data/ml_real_model.json`)
+gives real held-out metrics: **accuracy 1.00, precision 1.00,
+recall 1.00 (4 TP, 0 FP, 0 FN, 4 TN) on 8 held-out records**
+(31 train, loss 0.6931 → 0.2026). Read honestly: the test set
+is only 8 records, and the weights show the model learned
+almost only "low liquidity → rugged-like" (liquidity weight
+−2.605, collapse +0.036, other 8 features 0.000 — always
+missing on DexScreener data), because the label is largely
+the liquidity threshold. The metrics prove the pipeline works
+end-to-end on real tokens, NOT that the model detects actual
+rugs. One of the 12 (FROG, liquidity $2,492.78) sits within $8
+of the $2,500 line, so the count is sensitive to that
+threshold. Labels here are observable-market-fact labels, not
+verified rug verdicts (DexScreener provides no dev-wallet,
+LP-removal or dev-sell evidence). Real feature coverage is
+still thin: only collapse % (a 24h-fall proxy for
+peak-to-current collapse, 143/206) and liquidity (145/206) are
+present — the other 8 of the model's 10 features are always
+missing on DexScreener data.
 
 **v2.10 — pump.fun was tried and is blocked.** A second source
 was added (`PumpFunFetcher` in `src/real_data.py`): pump.fun
@@ -611,6 +624,8 @@ python -m src.real_data --fetch-pumpfun [--pumpfun-limit 300] [--out data/ml_rea
 # Merges pump.fun launches into the dataset at --out (deduped by mint).
 python -m src.real_data --verify-documented data/documented_rugged_mints.json [--out data/ml_real_dataset.json] [--json]
 # Verifies a JSON list of documented rugged mints and merges the verified records (deduped by mint).
+python -m src.real_data --relabel [--out data/ml_real_dataset.json] [--json]
+# Re-labels the existing dataset with the current rule (real-v2) from the stored market facts — no re-fetch.
 python -m src.ml_model --train data/ml_real_dataset.json --model data/ml_real_model.json
 ```
 
@@ -831,6 +846,52 @@ plus on demand (`workflow_dispatch`):
   the scan (the scan only adds/promotes via `add_or_update_entry`,
   which validates every entry).
 
+## Pro (v2.14)
+
+Fixes every ordinary part named in the Nov 13 review: JSON-file
+storage, once-a-day scanning, leaning on Helius/DexScreener
+instead of own chain data, and demo-only ML training.
+
+- **SQLite database (`src/db.py`).** Versioned schema with
+  migrations: `mints`, `devs`, `transfers` (deduped by
+  signature), `funding_edges`, `outcomes`, `alerts` (one per
+  mint+verdict — never re-alerted), `model_runs`, plus a
+  `holders` VIEW. All writers idempotent. The JSON registry is
+  untouched — the daily scan keeps working on it.
+- **Own chain index (`src/chain_index.py`).** Reads raw
+  transactions via the Helius RPC transport and builds its own
+  tables for watched mints and dev wallets (full-chain indexing
+  is out of scope). Strict pump.fun `create` parsing, transfer
+  diffs, funding edges. No key = clear error, exit 2.
+
+  ```bash
+  python -m src.chain_index --mint <address>
+  python -m src.chain_index --wallet <address>
+  ```
+- **Live watcher (`src/live_watch.py`).** Polls every 60s
+  (default) for new creations, dedups against the DB, runs the
+  verdict path, writes alerts to the DB and to
+  `data/alerts/live-YYYY-MM-DD.md`. Without a key it degrades
+  to DexScreener-only mode and says so — watch labels only,
+  never a rug verdict. Clean SIGINT/SIGTERM exit.
+
+  ```bash
+  python -m src.live_watch              # daemon, 60s interval
+  python -m src.live_watch --once       # single cycle (tests/CI)
+  python -m src.live_watch --interval 30
+  ```
+- **Proper ML training (`src/ml_train.py`).** Deterministic
+  stratified train/validation/test split on the real dataset
+  only (synthetic records rejected), real metrics per split,
+  model persisted as `data/models/<run_id>.json` + a `model_runs`
+  DB row. First run on the real-v2 dataset: train 0.96 / val
+  0.71 / test 1.00 accuracy (7-record test set — honest
+  numbers, not a victory lap).
+
+  ```bash
+  python -m src.ml_train
+  ```
+
 ## Project layout
 
 ```
@@ -846,6 +907,10 @@ src/watchtower.py       dev watchtower alerts (v2.3)
 src/kol_audit.py        KOL / fake-PnL auditor (v2.4)
 src/advanced.py         stealth clusters, exit sim, wash score, outcome tracker (v2.5)
 src/deep_check.py       one-command deep check: coin + dev + side wallets (v2.12)
+src/db.py               SQLite storage: mints, devs, transfers, funding edges, outcomes, alerts, model runs (v2.14)
+src/chain_index.py      own chain index from raw RPC transactions (v2.14)
+src/live_watch.py       live watcher daemon, 60s polls, deduped alerts (v2.14)
+src/ml_train.py         proper ML training job: stratified split, persisted model (v2.14)
 src/check_cli.py        pre-trade check CLI (exit 1 = flagged)
 src/pump_watch.py       pump.fun watchlist, no key (collapsed / thin / active)
 src/rugfarm.py          single-file stdlib-only SDK for developers (clone-ready)

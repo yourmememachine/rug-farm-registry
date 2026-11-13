@@ -2,6 +2,149 @@
 
 All notable changes to the Open Rug-Farm Registry.
 
+## v2.14 — 2026-11-13 — Pro
+
+- Fixes every ordinary part named in the Nov 13 review: JSON-file
+  storage, once-a-day scanning, leaning on Helius/DexScreener
+  instead of own chain data, and demo-only ML training.
+- **SQLite database (`src/db.py`).** Versioned schema with
+  migrations (v1 tables, v2 indexes), `init_db` / `migrate`
+  upgrades old databases in place. Tables: `mints`, `devs`,
+  `transfers` (deduped by signature), `funding_edges` (one row
+  per from/to/kind), `outcomes`, `alerts` (one per mint+verdict
+  — never re-alerted), `model_runs`, plus a `holders` VIEW
+  derived from transfer diffs. All writers are idempotent; a
+  second identical write changes nothing. The JSON registry is
+  untouched — the daily scan keeps working on it.
+- **Own chain index (`src/chain_index.py`).** Reads raw
+  transactions through the existing Helius RPC transport
+  (transport only — parsing and tables are ours), scoped to
+  watched mints and dev wallets; full-chain indexing is
+  explicitly out of scope. Parses pump.fun `create`
+  instructions (strictly — the balance-diff fallback that would
+  falsely call a first buy a "creation" is not used), token
+  balance diffs into buy/sell transfers, and system transfers
+  into funding edges, writing `mints` / `transfers` /
+  `funding_edges` / `holders` into SQLite. No Helius key =
+  clear error naming the key, exit 2, nothing written. CLI:
+  `python -m src.chain_index --mint <address> | --wallet
+  <address>`.
+- **Live watcher (`src/live_watch.py`).** Real-time polling
+  daemon, default 60s interval (`--interval`), `--once` for
+  tests/CI. Helius mode runs the full verdict path (labeller +
+  VerdictAgent); without a key it degrades to DexScreener-only
+  mode and says so in the log — watch labels only, never a rug
+  verdict. The alert decision combines the registry count with
+  the newly labelled mint, so a dev with 1 prior rug + 1 new
+  rugged mint crosses the >= 2 threshold (the registry itself
+  is never mutated — that stays the daily scan's job). Seen
+  mints are skipped, alerts are deduped in the DB, alerts go
+  to the DB and to `data/alerts/live-YYYY-MM-DD.md` (separate
+  from the daily scan's file). Clean SIGINT/SIGTERM exit; a
+  failed poll is logged, never kills the daemon. Live smoke
+  test: `--once` ran a real DexScreener-only cycle — 27
+  candidates, 27 new, 0 alerts (correct: no dev wallets in
+  that mode).
+- **Proper ML training job (`src/ml_train.py`).** Loads the real
+  dataset, rejects any `synthetic` record outright, does a
+  deterministic stratified train/validation/test split (a class
+  with < 3 examples goes entirely to train, documented in the
+  report), trains the existing from-scratch model on the train
+  split only, reports real accuracy/precision/recall per split,
+  and persists the model as `data/models/<run_id>.json` plus a
+  `model_runs` DB row. Run id is a hash of (rule version, seed,
+  dataset mints) — re-runs are deterministic updates, not
+  duplicates. Refuses with exit 2 and exact counts when data is
+  below the model's minimums. First run on the real-v2 dataset:
+  train 0.96 accuracy / 0.89 precision / 1.00 recall, val 0.71
+  / 0.50 / 1.00, test 1.00 / 1.00 / 1.00 (7 records — small
+  sample, honest numbers, not a victory lap).
+- 52 new tests (`tests/test_db.py`, `tests/test_chain_index.py`,
+  `tests/test_live_watch.py`, `tests/test_ml_train.py` — mocked
+  data only, no network). Full suite: **520 tests, all
+  passing**.
+
+## v2.13 — 2026-11-13
+
+- Registry rule update: the real-v1 labelling rule was too
+  strict for real rugs (v2.11 proved it — all 7 verified
+  documented rugs labelled "excluded"), so it is loosened to
+  **real-v2**, with a documented justification for every
+  changed threshold, grounded in the verified Nov 13 numbers.
+  Old vs new, exactly:
+  - Branch A (fresh collapse): 24h change <= -70% -> **-90%**
+    (TIGHTENED, not loosened — v1's -70% proxy was looser than
+    the registry's own >= 90% collapse standard in
+    `src/labeller.py`, and a -70% day is ordinary meme
+    volatility). Liquidity < $1,000, volume < $1,000, age >= 1
+    day unchanged.
+  - Branch B (long-dead): liquidity < $100 -> **< $2,500**
+    (the 4 verified small rugs hold $1,606-$1,907 residual
+    liquidity — real rugged pools almost never drain below
+    $100, so the v1 branch almost never fired; $2,500 covers
+    the observed range with ~30% headroom, still far below the
+    survived floor of $10,000); volume < $100 -> **< $500**
+    ("ser" had $413.56 24h volume, so v1's $100 cap excluded
+    a verified dead rug); age >= 7 days -> **>= 5 days** (the
+    4 small rugs are 5.67-5.94 days old, so v2 catches them
+    now, 2026-11-13, instead of ~Nov 19-20; a 5-day floor
+    still requires the token to have been dead for days, not
+    hours); market cap < $5,000 UNCHANGED (all 4 are
+    $1,520-$1,797). Survived rule unchanged. A mint is never
+    labelled rugged on liquidity alone — branch B also needs a
+    tiny market cap, near-zero volume AND age.
+  - The famous three (LIBRA, HAWK, CAR) are STILL excluded:
+    they hold $4.4k-$201k liquidity and $870k-$2.9M market
+    cap, so no liquidity/market-cap branch catches them — they
+    were rugged by insider selling, not pool drainage, and
+    catching them needs dev-sell / LP-removal evidence that
+    DexScreener does not provide. The rule is not forced to
+    catch them.
+- `src/labeller.py` (daily-scan labelling) was checked and
+  needs NO alignment: it labels on collapse + dev sell % + LP
+  removal + time, with no liquidity input at all, so the v1
+  liquidity flaw does not apply there. The >= 2 rugged mints +
+  evidence flagging rule in `src/registry.py` is UNCHANGED.
+- Re-labelled the full dataset with real-v2 (`python -m
+  src.real_data --relabel`, new `relabel_records` in
+  `src/real_data.py` — re-runs the stored market facts through
+  the current rule, no re-fetch, facts untouched): 206
+  records, **0 -> 12 rugged-like, 27 survived, 179 -> 167
+  excluded** (39 labelled). The 12: the 4 documented small
+  rugs (ABDUL, FOMOGIVING, LIQUID, ser) plus 8 DexScreener
+  dead clones the v1 rule missed (4x WIF, 2x MOON, 2x FROG;
+  market caps $330-$2,179, liquidity $589-$2,493, volume
+  $0.50-$85.72, ages 24-1,021 days). Honest sensitivity note:
+  one of the 12 (FROG, liquidity $2,492.78) sits within $8 of
+  the $2,500 line, so the count is sensitive to that threshold
+  choice.
+- **First real-data training run.** The model now trains on
+  real data: `python -m src.ml_model --train
+  data/ml_real_dataset.json --model data/ml_real_model.json`
+  — 31 train / 8 held out, loss 0.6931 -> 0.2026,
+  **held-out accuracy 1.00, precision 1.00, recall 1.00 (4
+  TP, 0 FP, 0 FN, 4 TN)**, model saved to
+  `data/ml_real_model.json`. Read honestly: the test set is
+  only 8 records (one flip would drop accuracy to 0.875),
+  and the weights show what the model actually learned —
+  `liquidity_usd` weight -2.605, `collapse_pct` +0.036, the
+  other 8 features 0.000 (always missing on DexScreener
+  data). It learned "low liquidity -> rugged-like" because
+  the label IS largely the liquidity threshold — the metrics
+  prove the pipeline works end-to-end on real tokens, NOT
+  that the model detects actual rugs. Labels remain
+  observable-market-fact labels, not verified rug verdicts.
+- 15 new tests in `tests/test_real_v2_rule.py` (mocked data
+  only, no network): branch A -90% boundary and the deliberate
+  -70% tightening, branch B thresholds one by one, the 7
+  documented rugs with the expected outcome per rug,
+  survived rule unchanged, missing data never qualifies,
+  `relabel_records` + `--relabel` CLI, and the flagging rule
+  (>= 2 rugged + evidence) and labeller (no liquidity input,
+  collapse 90%) pinned unchanged. Existing branch-A tests
+  updated from -70% / -88% to -90% / -92%. Full suite: **468
+  tests, all passing**.
+
 ## v2.12 — 2026-11-13
 
 - Deep check: the whole manual POOR-coin check as one command
