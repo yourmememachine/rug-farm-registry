@@ -403,6 +403,39 @@ python -m src.kol_audit --wallet <wallet> --claimed-profit <usd> --claimed-winra
 # Exit 0 = consistent / unverifiable, 1 = exaggerated, 2 = invalid args
 ```
 
+## Advanced detection (v2.5)
+
+`src/advanced.py` builds the four things a GitHub survey of
+other developers' rug-check code found nobody open-sourcing:
+the best detection lives in closed services, open repos mostly
+wrap RugCheck / GMGN / Helius, and same-block bundler checks
+are evaded by pre-funding + delayed buys. All four work from
+caller-supplied data only — no invented funder, holder,
+liquidity, or outcome:
+
+- **StealthClusterDetector** — pre-funded wallets (funded ≥ 24h
+  before launch), delayed buys (≥ 1h after launch), and shared
+  funding sources across 2+ hops. A lone wallet counts only
+  when it is both pre-funded and a delayed buyer.
+- **ExitSimulator** — what you actually receive selling a given
+  size: constant-product price impact + slippage from real
+  liquidity. "Unreliable" when liquidity is missing.
+- **WashScore** — wash-trading / fake-holder score (0-100) from
+  HHI-style concentration, top-1 / top-10 share, and a
+  volume-vs-holders anomaly. "Insufficient data" when holder
+  data is missing.
+- **OutcomeTracker** — record a verdict + the coin's later
+  outcome (caller-supplied) to a JSON file, never the registry,
+  and compute precision / recall / accuracy over time.
+
+```bash
+python -m src.advanced --exit --mc <n> --liquidity <n> --size <usd>
+python -m src.advanced --wash --holders <n> --top10 0.4,0.2,...
+python -m src.advanced --cluster --funding <events.json>
+python -m src.advanced --track --verdict flagged --outcome rugged --mint <mint>
+# Exit 0 = ok, 2 = invalid args
+```
+
 ## Clone & use in your project
 
 Developers can clone the repo and use the registry from their own
@@ -579,6 +612,7 @@ src/daily_scan.py       daily scan CLI: fetch -> label -> cluster -> alert
 src/evidence.py         Muse-run evidence gathering + report (v2.2)
 src/watchtower.py       dev watchtower alerts (v2.3)
 src/kol_audit.py        KOL / fake-PnL auditor (v2.4)
+src/advanced.py         stealth clusters, exit sim, wash score, outcome tracker (v2.5)
 src/check_cli.py        pre-trade check CLI (exit 1 = flagged)
 src/pump_watch.py       pump.fun watchlist, no key (collapsed / thin / active)
 src/rugfarm.py          single-file stdlib-only SDK for developers (clone-ready)
