@@ -217,6 +217,35 @@ python -m src.creativity --verdict active --symbol GATO --mc 5009361 --change -1
 # Modes: --story / --post / --badge / --names (default: all). Exit 0 = ok, 2 = invalid args.
 ```
 
+## Web3 future
+
+A future-facing module in `src/web3_future.py` — think ahead,
+build with web3. Stdlib only, no new dependency, no wallet, no
+SOL spent, no private key, no invented data:
+
+- **FutureChain** — chain-agnostic registry design: Solana is
+  live today, Base is a planned second chain (explorer URLs
+  ready, adapter not wired up). Verdicts never depend on the
+  chain, so a new chain can be added without rewriting them.
+- **OnChainProbe** — probes a dev wallet with the public
+  Solana RPC (no key): SOL balance, account owner, and whether
+  it is a token mint or a system wallet. On RPC failure it
+  says "unavailable" instead of inventing a number.
+- **FutureWatch** — forward-looking risk signals from real
+  DexScreener data only: thin liquidity (< $1,000), collapsed
+  (≤ -70% in 24h), no liquidity reported. Labels are only
+  watch / ok — never "rugged".
+- **RoadmapAgent** — the next 3 versions as markdown (v2.0
+  multi-chain, v2.1 Helius live scan, v2.2 community evidence
+  submissions). Dates are always TBD — directions, not promises.
+
+```bash
+python -m src.web3_future --wallet <address> [--chain solana]
+python -m src.web3_future --roadmap
+python -m src.web3_future --mc 2903 --liquidity 2752 --change -91.5
+# Exit 0 = ok, 2 = invalid args / invalid address / unsupported chain
+```
+
 ## Clone & use in your project
 
 Developers can clone the repo and use the registry from their own
