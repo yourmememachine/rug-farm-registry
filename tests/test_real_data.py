@@ -38,16 +38,16 @@ def _obs(**overrides):
     return obs
 
 
-# -- Labelling rule (fixed "real-v1", each branch) -----------------------
+# -- Labelling rule (fixed "real-v2", each branch) -----------------------
 
 def test_label_rugged_branch_a_fresh_collapse():
     assert label_token(_obs(
-        change_24h_pct=-85.0, liquidity_usd=400.0,
+        change_24h_pct=-92.0, liquidity_usd=400.0,
         volume_24h_usd=200.0, pair_age_days=3.0,
     )) == "rugged"
     # Exactly at the thresholds still counts.
     assert label_token(_obs(
-        change_24h_pct=-70.0, liquidity_usd=999.99,
+        change_24h_pct=-90.0, liquidity_usd=999.99,
         volume_24h_usd=999.99, pair_age_days=1.0,
     )) == "rugged"
 
@@ -99,7 +99,7 @@ def test_label_missing_data_never_satisfies_a_threshold():
 def test_labelling_rule_is_versioned_and_structured():
     rule = labelling_rule()
     assert rule["version"] == LABELLING_RULE_VERSION
-    assert rule["rugged_branch_a_fresh_collapse"]["change_24h_pct_max"] == -70.0
+    assert rule["rugged_branch_a_fresh_collapse"]["change_24h_pct_max"] == -90.0
     assert rule["survived"]["liquidity_usd_min"] == 10_000.0
 
 
@@ -165,10 +165,10 @@ def test_pick_main_pair_is_highest_liquidity():
 # -- Record building -------------------------------------------------------
 
 def test_build_record_rugged_has_real_features_only():
-    obs = parse_pair(_pair(RUGGED_MINT, "RUG", 8000, 300, 150, -88.0, 3.0))
+    obs = parse_pair(_pair(RUGGED_MINT, "RUG", 8000, 300, 150, -92.0, 3.0))
     record = build_record(obs, NOW)
     assert record["outcome"] == "rugged"
-    assert record["collapse_pct"] == 88.0  # 24h-fall proxy, documented
+    assert record["collapse_pct"] == 92.0  # 24h-fall proxy, documented
     assert record["liquidity_usd"] == 300
     assert record["synthetic"] is False
     assert record["dexscreener_url"].endswith(RUGGED_MINT)
@@ -212,7 +212,7 @@ def _mock_client():
         {"chainId": "solana", "tokenAddress": RUGGED_MINT},  # duplicate
     ]
     pairs = [
-        _pair(RUGGED_MINT, "RUG", 8000, 300, 150, -88.0, 3.0),
+        _pair(RUGGED_MINT, "RUG", 8000, 300, 150, -92.0, 3.0),
         _pair(SURVIVED_MINT, "OK", 5_000_000, 250_000, 800_000, 12.0, 60.0),
         _pair(DEAD_MINT, "DED", 2000, 50, 10, -2.0, 30.0),
         _pair(MID_MINT, "MID", 100_000, 5000, 2000, -10.0, 2.0),
@@ -338,7 +338,7 @@ def test_cli_success_exits_0_when_enough_labelled(tmp_path, capsys):
         for i in range(6)
     ]
     big_pairs = [
-        _pair(f"RUGGED{i:03d}" + "1" * 28, f"R{i}", 8000, 300, 150, -88.0, 3.0)
+        _pair(f"RUGGED{i:03d}" + "1" * 28, f"R{i}", 8000, 300, 150, -92.0, 3.0)
         for i in range(6)
     ] + [
         _pair(f"SURVIVED{i:02d}" + "1" * 28, f"S{i}", 5_000_000, 250_000, 800_000, 12.0, 60.0)

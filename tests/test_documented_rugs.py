@@ -2,7 +2,7 @@
 httpx.MockTransport. No live call is ever made here. The mints
 below are synthetic test values, and the labels are
 observable-market-fact labels ("rugged" means rugged-like by the
-fixed "real-v1" rule), never verified rug verdicts. The
+fixed "real-v2" rule), never verified rug verdicts. The
 documented-rugs path is tested against the SAME rule as the
 DexScreener and pump.fun paths — the source only changes which
 mints are sampled, never the labelling.
@@ -110,7 +110,7 @@ def test_verify_bad_address_rejected_without_fetch():
         {"mint": "ABC", "source": "https://example.com/c"},
         {"mint": RUG_MINT, "source": "https://example.com/d"},
     ]
-    pairs = [_pair(RUG_MINT, "RUG", 8000, 300, 150, -88.0, 3.0)]
+    pairs = [_pair(RUG_MINT, "RUG", 8000, 300, 150, -92.0, 3.0)]
     result = verify_documented_mints(entries, client=_mock_client(pairs))
     assert {r["mint"] for r in result["records"]} == {RUG_MINT}
     assert result["records"][0]["outcome"] == "rugged"  # branch A

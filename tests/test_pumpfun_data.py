@@ -1,7 +1,7 @@
 """Pump.fun second-source tests — all HTTP is mocked with httpx.MockTransport.
 No live call is ever made here. The mints below are synthetic test
 values, and the labels are observable-market-fact labels ("rugged"
-means rugged-like by the fixed "real-v1" rule), never verified rug
+means rugged-like by the fixed "real-v2" rule), never verified rug
 verdicts. The pump.fun fetcher is tested against the SAME rule as
 the DexScreener path — the source only changes which mints are
 sampled, never the labelling.
@@ -168,7 +168,7 @@ def _full_mock_client():
     }
     pairs = [
         _pair(DEAD_MINT, "DED", 2000, 50, 10, -2.0, 30.0),
-        _pair(RUG_MINT, "RUG", 8000, 300, 150, -88.0, 3.0),
+        _pair(RUG_MINT, "RUG", 8000, 300, 150, -92.0, 3.0),
         _pair(OK_MINT, "OK", 5_000_000, 250_000, 800_000, 12.0, 60.0),
     ]
     return _mock_client(pages, pairs)
@@ -197,7 +197,7 @@ def test_build_record_pumpfun_age_falls_back_to_launch_time():
         "market_cap_usd": 8000,
         "liquidity_usd": 300,
         "volume_24h_usd": 150,
-        "change_24h_pct": -88.0,
+        "change_24h_pct": -92.0,
         "txns_24h": 40,
         "pair_created_at_ms": None,
         "created_at_ms": int(NOW.timestamp() * 1000 - 3.0 * DAY_MS),
