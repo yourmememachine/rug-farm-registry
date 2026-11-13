@@ -2,7 +2,16 @@
 
 All notable changes to the Open Rug-Farm Registry.
 
-## v1.5 — 2026-11-12 (unpushed, local)
+## v1.6 — 2026-11-13
+
+- Daily alert for 2026-11-13: no new verified alerts — live scan
+  still blocked without `HELIUS_API_KEY`, by design, no wallets
+  invented or added. Pump.fun watch (DexScreener, 07:18 UTC):
+  GATO $5.0M MC leads, NIHAOSON -91.5% collapsed (watch only),
+  SKT $458 liquidity thin (watch only). 85 tests passed.
+- No registry entries added: registry is still sample data only.
+
+## v1.5 — 2026-11-12
 
 - Added `src/rugfarm.py`: single-file, stdlib-only SDK developers
   can copy into their own projects (no extra dependencies).
