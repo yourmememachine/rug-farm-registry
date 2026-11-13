@@ -69,11 +69,14 @@ def label_outcome(event: MintEvent) -> str:
         return "rugged"
 
     # --- Failed but honest -------------------------------------------
+    # A big collapse with no LP removal and only a small dev sell is an
+    # honest failure — including a slow bleed over > 24h, which the
+    # branch above already covers (it has no speed condition). A slow
+    # bleed with a large dev sell is NOT honest: the dev sold, so it
+    # falls through to "inconclusive" instead.
     if collapse >= COLLAPSE_HONEST_FAILURE_PCT and (
         not event.lp_removed and event.dev_sold_pct < DEV_SELL_HONEST_MAX_PCT
     ):
-        return "failed_but_honest"
-    if not fast and collapse >= COLLAPSE_HONEST_FAILURE_PCT and not event.lp_removed:
         return "failed_but_honest"
 
     return "inconclusive"

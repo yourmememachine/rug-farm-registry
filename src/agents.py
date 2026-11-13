@@ -352,8 +352,14 @@ class AlertAgent:
                 f"{len(flagged)} flagged, {len(under_review)} under review."
             )
         lines.append("")
-        lines.append(f"- Creations checked: {checked} (scan did not run — no Helius key).")
-        lines.append("- Dev wallets with a rugged mint today: 0.")
+        if scan_blocked:
+            lines.append(f"- Creations checked: {checked} (scan did not run — no Helius key).")
+        else:
+            lines.append(f"- Creations checked: {checked}.")
+        lines.append(
+            f"- Dev wallets with a rugged mint today: "
+            f"{len(flagged) + len(under_review)}."
+        )
         lines.append(
             f"- Newly flagged serial ruggers (≥ 2 rugged mints, evidence-linked): "
             f"{len(flagged)}."

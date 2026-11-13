@@ -6,6 +6,7 @@ expired (last_seen + ttl_days). One rug = under_review, never flagged.
 """
 from __future__ import annotations
 
+import copy
 import json
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -181,19 +182,24 @@ def add_or_update_entry(
     if existing is None:
         data.setdefault("entries", []).append(entry)
     else:
-        known = {m.get("mint") for m in existing.get("rugged_mints", [])}
+        # Merge into a copy and validate it BEFORE touching the live
+        # entry, so a failed merge leaves the existing entry untouched.
+        merged = copy.deepcopy(existing)
+        known = {m.get("mint") for m in merged.get("rugged_mints", [])}
         for mint in entry.get("rugged_mints", []):
             if mint.get("mint") not in known:
-                existing.setdefault("rugged_mints", []).append(mint)
+                merged.setdefault("rugged_mints", []).append(mint)
                 known.add(mint.get("mint"))
-        existing["last_seen"] = max(
-            existing.get("last_seen", ""), entry.get("last_seen", "")
+        merged["last_seen"] = max(
+            merged.get("last_seen", ""), entry.get("last_seen", "")
         )
-        if rugged_mint_count(existing) >= MIN_RUGGED_MINTS_TO_FLAG:
-            existing["status"] = "flagged"
-        errors = validate_entry(existing)
+        if rugged_mint_count(merged) >= MIN_RUGGED_MINTS_TO_FLAG:
+            merged["status"] = "flagged"
+        errors = validate_entry(merged)
         if errors:
             return False, "merged entry invalid: " + "; ".join(errors)
+        existing.clear()
+        existing.update(merged)
     if not str(wallet).startswith("SAMPLE"):
         data["sample_data"] = False
         data["disclaimer"] = REAL_DISCLAIMER
