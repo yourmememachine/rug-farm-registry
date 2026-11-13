@@ -2,6 +2,35 @@
 
 All notable changes to the Open Rug-Farm Registry.
 
+## v2.1 — 2026-11-13
+
+- Added `src/live_scan.py`: live Helius scan, stdlib + httpx
+  only, no wallet, no funds moved. HeliusClient reads
+  `HELIUS_API_KEY` only from the environment (never hardcoded,
+  never logged, never committed) and wraps the existing Helius
+  indexer (pump.fun signatures, transaction details, mint +
+  dev parsing, clear "HELIUS_API_KEY is not set — scan blocked"
+  error without a key). LiveScanner runs a bounded scan (N
+  recent creations, DexScreener outcome + labeller per mint)
+  and flags a dev only with >= 2 rugged mints, each with
+  evidence links (scan + registry, deduped by mint); 1 rug =
+  under review; a price drop alone never flags. EvidenceGatherer
+  is Muse-run (no community): DexScreener / Solscan / pump.fun /
+  Helius links + summary from real data only, "insufficient
+  evidence" when data is missing. Demo CLI
+  `python -m src.live_scan --limit 10 [--dry-run] [--json]`;
+  exit 0 = ok, 2 = blocked / invalid args; --dry-run makes no
+  Helius call.
+- Added `tests/test_live_scan.py` (22 tests, mocked HTTP only,
+  no network, no real key: missing-key blocked, client
+  headers/URL, tx parsing mint + dev, RPC error, flagged /
+  under_review / not_flagged, registry merge + dedupe,
+  price-drop-alone never flags, evidence links, dry-run no
+  network, CLI exit codes). 196 tests total.
+- README: new "Live scan (v2.1)" section — how to set
+  `HELIUS_API_KEY` locally in .env and as a GitHub secret, and
+  that the key is never committed.
+
 ## v2.0 — 2026-11-13
 
 - Added `src/multichain.py`: multi-chain support, stdlib-only,
