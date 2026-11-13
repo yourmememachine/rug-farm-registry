@@ -2,6 +2,45 @@
 
 All notable changes to the Open Rug-Farm Registry.
 
+## v2.8 — 2026-11-13
+
+- Added `src/ml_model.py`: a machine-learning rug-risk model —
+  logistic regression implemented from scratch, stdlib only (no
+  sklearn, no numpy). A fixed 10-feature vector per mint
+  (collapse %, dev sell %, LP removed, time-to-collapse, wash
+  score, top-1 / top-10 holder share, holder count, cluster
+  size, liquidity), built from mint events + the v2.5 advanced
+  detectors. Missing features are flagged as missing, never
+  silently zero-filled: the model imputes the training mean, so
+  a missing feature contributes exactly 0 to the log-odds.
+  `predict_risk` returns a probability + band (low / medium /
+  high) + the top contributing features, so a human can see WHY
+  the score is what it is — no black box. Trains on
+  OutcomeTracker JSON records (verdict + later outcome) with a
+  deterministic 80/20 held-out split and accuracy / precision /
+  recall reporting; under 10 labelled records (or under 2 per
+  class) it reports "insufficient training data" instead of
+  pretending the model is good. A small synthetic labelled
+  dataset ships ONLY for tests/demo, clearly labelled synthetic.
+  Model persistence to a caller-given JSON file (weights +
+  feature stats); never writes to the registry. CLI
+  `python -m src.ml_model --train <outcomes.json> --model
+  <out.json> | --demo | --predict <mint.json> | --evaluate`,
+  exit 0 = ok, 2 = invalid args / insufficient data / bad file.
+  Held-out on synthetic demo data: accuracy 1.00, precision
+  1.00, recall 1.00 (16 held out; 1.00 on a fresh 80-record
+  synthetic set too) — synthetic data is clearly separable, so
+  this is a pipeline check, not real-world performance; real
+  OutcomeTracker data is still too small to train on.
+- Minimal integration: `DevHistory` gains an optional advisory
+  ML score (`--ml-model <model.json>` on the dev-history CLI,
+  or `ml_model=` on the builder) — per-mint probabilities +
+  max risk, shown next to the rule verdict. It NEVER changes
+  any rule-based verdict: >= 2 rugged mints + evidence stays
+  the only flagging path.
+- Added `tests/test_ml_model.py` (31 tests, synthetic data
+  only, no network). 366 tests total.
+
 ## v2.7 — 2026-11-13
 
 - Added `src/dev_history.py`: dev history — paste any dev wallet,
