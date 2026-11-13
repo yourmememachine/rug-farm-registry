@@ -2,6 +2,264 @@
 
 All notable changes to the Open Rug-Farm Registry.
 
+## v2.17 — 2026-11-13 — Dev-wallet-first check
+
+- **Dev check (`src/dev_check.py`).** The manual POOR-dev
+  bundled-wallet check — Solscan account pages + Bubblemaps,
+  done by hand on 2026-11-13 — as one command. Paste a dev
+  wallet, get the dev + its bundled wallets, no mint needed:
+  `python -m src.dev_check --wallet <address> [--json]`;
+  exit 0 = done, 1 = flagged dev, 2 = invalid address / no
+  network.
+- **Dev profile** — SOL balance + token-account count from
+  the public RPC (`getBalance` / `getTokenAccountsByOwner`,
+  classic + Token-2022), pump.fun profile link. No pump.fun
+  display name (no reachable public profile API from this
+  environment) and no realized PnL (no existing code computes
+  it) — both reported unavailable, never guessed.
+- **Funder chain, two hops up** — first funder = sender of
+  the wallet's oldest funding transfer (`system transfer` to
+  the wallet, or `createAccount` creating it). Helius path
+  pages the full history (80 pages x 1000 signatures);
+  public-RPC path is bounded (3 pages x 1000, documented).
+  An unresolvable hop reports "unresolved" with its
+  coverage — never an invented funder.
+- **Bundled-wallet test (the core)** — the dev's recent
+  coins (strict pump.fun `create` parses, including the raw
+  `create` discriminator `181ec828051c0777` and the newer
+  `create_v2` discriminator `d6904cec5f8b31b4`, because the
+  public RPC does not parse pump.fun instructions at all),
+  their top early buyers (token-balance diffs in the creation
+  tx), each buyer's first funder the same way. Bundled ONLY
+  on a proven link: shared first funder, funded by the dev,
+  or funded the dev. Otherwise "no direct bundle found"; if a
+  funder can't be resolved the verdict is "inconclusive" and
+  the report says it is NOT a "no bundle" finding. A bundle
+  alone never flags a dev.
+- **Cluster + verdict** — `StealthClusterDetector` over the
+  dev + early buyers (deliberately not the funder-chain hop,
+  which would trivially cluster the dev with its own funder);
+  too-thin data says so. `DevHistoryBuilder` over the recent
+  mints with DexScreener outcomes (keyless) merged with
+  registry rugged mints; the ≥ 2 rugged + evidence rule is
+  unchanged, and the verdict states it covers the scanned
+  window only.
+- **Smoke test (no key), POOR dev `7kGAX…`, exit 0, ~80s:**
+  profile 181.4 SOL, 105 token accounts — but funder chain
+  UNRESOLVED (3,000-signature public-RPC window doesn't reach
+  the 1.5-year-old first funding), history
+  `insufficient_data` (0 mints — the dev is trading, not
+  launching, in the recent window), bundle INCONCLUSIVE. It
+  does NOT reproduce the manual "no direct bundle" finding
+  without a Helius key, and says so instead of faking it; the
+  bundle-test logic itself is verified against the POOR
+  fixture (four different funders -> "no direct bundle
+  found") in `tests/test_dev_check.py` (30 tests, mocked).
+- **Cleanup:** `src/dev_check.py` and `src/feature_enrich.py`
+  now share the single `PublicRpcClient` in
+  `src/public_rpc.py` — one client, one set of pacing/retry
+  rules. Full suite at v2.17 completion: **618 tests, all
+  passing**.
+
+## v2.16 — 2026-11-13 — Keyless mint check
+
+- **The mint check now works without a key
+  (`src/public_rpc.py` is new; `src/deep_check.py` rewired
+  around it).** When DexScreener has no pair for a mint, the
+  coin half falls back to the **public Solana RPC**
+  (`getTokenSupply`, `getTokenLargestAccounts` with a
+  `getProgramAccounts` holder scan as fallback,
+  `getAccountInfo` on the mint for mint/freeze authority,
+  Metaplex metadata for name/symbol). No price exists
+  on-chain, so price / market-cap / volume are explicit nulls
+  and the card says so. Both sources empty -> "no data found
+  for this mint", exit 2.
+- **Creator / dev without a key** — Metaplex metadata
+  creators via public RPC, else the fee payer of the oldest
+  creation transaction, found by paging the mint's signature
+  history backwards (10 pages x 100, strict creation check).
+  Dev history runs through the real `DevHistoryBuilder` on a
+  `PublicRpcIndexer` adapter (bounded: last 100 signatures);
+  funding scan covers dev + top 5 early buyers, 20 sigs each;
+  `WashScore` runs from the RPC holder data when the coin card
+  came from the RPC. Helius stays the fast path whenever a key
+  is set. Verdict rules unchanged: flagged still needs ≥ 2
+  rugged mints + evidence; pattern-only is "high-risk
+  pattern".
+- **Public-RPC client** — paced 0.5s, 429 retries honouring
+  Retry-After, endpoint fallback (api.mainnet-beta ->
+  publicnode), a method that 429s everywhere is marked dead
+  for the run. Correct Token-2022 program constant (verified
+  live; the commonly misremembered tail holds no account) and
+  no `dataSize` filter on the holder scan (it missed almost
+  all Token-2022 accounts with extensions) — both bugs were
+  also fixed in v2.15's path.
+- **Live smoke tests (no key). BagsBack
+  `7fAJ48SP…` — exit 0, full card:** coin from public RPC
+  (supply 1,000,000,000, Token-2022, mint/freeze revoked, 4
+  holders, top holder 98.3%, no price — stated), creator
+  resolved: `CGaqXYF…` (HIcat_) via `creation_tx`, dev history
+  clean (2 checked, 0 rugged — bounded window, noted),
+  funding links found (1 funder, several funded-by-dev), wash
+  95/high -> verdict **"high-risk pattern", not flagged**.
+  **POOR `9oJk7eMcc…` — exit 0, coin fully live via
+  DexScreener** ($0.00008473, MC $81,244, liquidity $22,082,
+  24h volume $849,120, +167%). **Creator honestly
+  unresolved:** POOR has no Metaplex metadata account
+  (verified via PDA derivation — the account genuinely
+  doesn't exist), and its creation is >1,000 signatures back
+  (~20k txns), past the paging budget. Verdict "unknown" (not
+  "clean"), early buyers found. No creator invented — exactly
+  the required behaviour for an old mint without a key.
+- **Bugs the live runs found and fixed:** (1) Memo-program
+  crash — a Memo instruction's `parsed` is a base58 string,
+  not a dict; `parse_funding_transfers` crashed the whole
+  funding scan. Fixed with `isinstance` guards in
+  `src/chain_index.py` and the same latent pattern in
+  `src/indexer.py` (the keyed path had it too). (2)
+  Creation-tx paging — BagsBack has 661 signatures; the old
+  single-window lookup never reached creation. Now pages
+  backwards (10 pages) with a strict creation check. (3)
+  `create_v2` discriminator — pump.fun migrated; BagsBack was
+  launched with `create_v2` (`d6904cec5f8b31b4`), which the
+  v2.17 creation parser didn't match. Added
+  `CREATE_V2_DISCRIMINATOR` in `src/dev_check.py` (minimal,
+  benefits v2.17's creation hunting too). (4) 429 backoff burn
+  — one throttled method cost ~150s (5s-base backoff). Tuned
+  to 2s base / 30s cap. (5) Zero-balance token accounts
+  filtered out of the top-holder list.
+- **Caveats:** the keyless full check is slow on this
+  throttled VM — BagsBack took ~8 min (dev history + funding
+  scans + 429 retries), POOR 44s. It completes, but don't
+  expect interactive speed until the RPC throttling eases.
+  `funded_by_dev` links repeat per transfer (pre-existing
+  `build_side_wallets` behaviour, same on the keyed path) —
+  cosmetic, left alone. POOR's creator stays unresolvable
+  keyless by design (no metadata account; creation far beyond
+  any sane paging budget).
+- **Tests:** 38 new in `tests/test_deep_check_keyless.py`
+  (mocked RPC only, no network); two existing tests in
+  `tests/test_deep_check.py` updated because the fallback
+  changed their expectations (no-key now runs keyless instead
+  of skipping the dev half; no-pair now tries the RPC first)
+  — they inject an empty-RPC client so they stay
+  deterministic. Full suite at v2.16 completion: **618 tests,
+  all passing**.
+
+## v2.15 — 2026-11-13 — ML feature enrichment
+
+- The v2.13 model was a one-feature model (liquidity weight
+  −2.605, collapse +0.036, other 8 features 0.000) because on
+  DexScreener data only 2 of the 10 features exist. v2.15
+  fills the missing features from real on-chain data so the
+  model has more than liquidity to learn from.
+- **Enrichment job (`src/feature_enrich.py`).** For each of the
+  39 labelled records in `data/ml_real_dataset.json`, fetches
+  the 8 missing features from the **public Solana RPC**
+  (`api.mainnet-beta.solana.com`, fallback
+  `solana-rpc.publicnode.com`) and DexScreener — no key, the
+  Helius key exists only as a GitHub secret for CI. Methods:
+  `getTokenLargestAccounts` + `getTokenSupply` for top shares
+  and holder counts; `getSignaturesForAddress` +
+  `getTransaction` (rate-limit-aware, 2.5s pacing, 429 retries
+  honouring Retry-After, endpoint fallback, dead-method
+  marking) for dev-sell / LP-removal / time-to-collapse /
+  transfers; `wash_score` and `cluster_size` computed from the
+  fetched data with the existing `WashScore` /
+  `StealthClusterDetector`. Bounded run (39 labelled records,
+  40 calls per record), checkpoint file
+  (`data/feature_enrich_checkpoint.json`) so a run resumes,
+  `--limit` flag. A feature that cannot be fetched stays
+  missing — never invented, never zero-filled as if real — and
+  is counted in the coverage report. CLI:
+  `python -m src.feature_enrich [--limit N] [--dataset <path>]
+  [--checkpoint <path>] [--json]`; exit 0 = done, 2 = invalid
+  args / RPC unreachable.
+- **Coverage, before (v2.13) -> after (v2.15), per labelled
+  record (n=39):** `collapse_pct` 36 -> 36 (DexScreener, not
+  enriched), `liquidity_usd` 39 -> 39 (not enriched),
+  `lp_removed` 0 -> 39, `time_to_collapse_minutes` 0 -> 39,
+  `wash_score` 0 -> 39, `top1_share` 0 -> 39, `top10_share`
+  0 -> 39, `holder_count` 0 -> 39, `dev_sold_pct` 0 -> 0,
+  `cluster_size` 0 -> 0. Six of eight filled for every
+  labelled record; the dataset summary's
+  `features_always_missing` shrank from all 8 to just
+  [`dev_sold_pct`, `cluster_size`]. Old fields untouched
+  (verified: zero diffs against the pre-enrichment backup at
+  `/tmp/ml_real_dataset_pre_enrich_backup.json`), rule stays
+  real-v2. Enriched values carry a per-record `enrichment`
+  block with source + basis, e.g. the rugged WIF clone
+  (`DMvGtmA4…`): top1 0.934, top10 0.989, 353 holders, wash
+  score 85/100 (high) — the rug signature, vs a survived
+  token's top1 0.297 / wash 25.
+- **Retrain on the enriched dataset (`python -m src.ml_train`,
+  seed 42, run `ml-46a3863c7df1` — same run id as v2.14, so
+  the model artifact and DB row are updated, not duplicated):**
+  train 25 (8 rugged / 17 survived) **1.00 / 1.00 / 1.00**
+  accuracy/precision/recall; val 7 (2/5) **0.714 / 0.50 /
+  1.00** (2 TP, 2 FP, 0 FN, 3 TN); test 7 (2/5) **1.00 / 1.00
+  / 1.00** (2 TP, 0 FP, 0 FN, 5 TN). vs v2.14: train 0.96 /
+  0.89 / 1.00, val 0.71 / 0.50 / 1.00, test 1.00 / 1.00 /
+  1.00 — the metrics barely moved. **The change is the
+  weights:** collapse **+0.686**, dev_sold 0.000, lp_removed
+  0.000, time_to_collapse **−0.648**, wash **+0.563**, top1
+  **+0.841**, top10 **+0.517**, holder **+0.397**, cluster
+  0.000, liquidity **−1.733** (bias −1.476). The model now
+  genuinely uses **7 features** instead of 1: liquidity is
+  still the largest single weight, but top1 share (+0.841)
+  is now the second-largest and collapse, time-to-collapse,
+  wash, top10 and holder count all contribute. `data/ml_real_model.json`
+  updated to the new weights.
+- **Honest reading.** The model stopped being a one-feature
+  model, but the metrics do not prove it detects rugs better:
+  val and test are 7 records each (2 rugged), so identical
+  val/test numbers are expected even after a real change, and
+  val precision is still 0.50 (2 false positives). The two
+  still-missing features are the interesting ones: `dev_sold_pct`
+  and `cluster_size` are 0/39 because the creation transaction
+  is unreachable within the 3-page signature budget on the
+  public RPC for every record — the histories are too long to
+  page back to the oldest tx, so no dev wallet is identified
+  and no funding events are found. `lp_removed` is filled for
+  all 39 but is 0 (False) for all of them — every labelled
+  record holds ≥ $1,000 liquidity, the same residual-liquidity
+  finding as v2.11 — so its weight is 0 despite being
+  "filled". The model is still advisory-only; the ≥2 rugged
+  mints + evidence flagging rule is unchanged.
+- **Two live bugs found and fixed during the run.** (1) The
+  Token-2022 program constant was wrong — the commonly
+  misremembered `…EPF3SfwV1CZ5LwU4MsS` holds **no account**;
+  the real program is `TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb`
+  (verified live via `getAccountInfo`: executable, BPF-loader
+  owned). The wrong constant silently skipped the holder
+  fallback for every Token-2022 mint. The fallback now uses
+  the owner returned by `getAccountInfo`, which is
+  authoritative. (2) A `dataSize: 165` filter on
+  `getProgramAccounts` misses almost all Token-2022 accounts
+  with extensions (live probe: 60 of 16,676) and the
+  dataSize+dataSlice combination is rejected with "WrongSize"
+  on Token-2022 — the filter is removed; the query is memcmp
+  + dataSlice only. `getTokenLargestAccounts` is effectively
+  unusable from this environment (429 on both public
+  endpoints, publicnode even 403'd once), so the
+  program-accounts fallback does all holder work.
+- `src/real_data.py` — `summarize()` now counts all 10 model
+  features in `feature_coverage`; `features_always_missing` is
+  now the features with zero non-None values.
+- 28 new tests (`tests/test_feature_enrich.py` — mocked RPC
+  world only, no network): top-holder parsing from largest
+  accounts and from program accounts, Token-2022 mint
+  regression, no-`dataSize` request shape, dev-sell from
+  mocked creation tx, cluster from shared funder, call-budget
+  partial, checkpoint resume (second run makes no new RPC
+  calls), missing-feature handling, CLI exit codes. Full
+  suite at v2.15 completion: **575 tests, all passing** —
+  548 of them from v2.15's tree plus 27 from the concurrent
+  v2.16 keyless public-RPC work (`src/public_rpc.py`,
+  `src/dev_check.py`, `src/deep_check.py` + tests) that landed
+  in the same tree during this run; v2.16's own changelog
+  entry covers those 27.
+
 ## v2.14 — 2026-11-13 — Pro
 
 - Fixes every ordinary part named in the Nov 13 review: JSON-file

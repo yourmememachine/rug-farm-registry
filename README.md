@@ -563,11 +563,57 @@ rugs. One of the 12 (FROG, liquidity $2,492.78) sits within $8
 of the $2,500 line, so the count is sensitive to that
 threshold. Labels here are observable-market-fact labels, not
 verified rug verdicts (DexScreener provides no dev-wallet,
-LP-removal or dev-sell evidence). Real feature coverage is
-still thin: only collapse % (a 24h-fall proxy for
-peak-to-current collapse, 143/206) and liquidity (145/206) are
-present — the other 8 of the model's 10 features are always
-missing on DexScreener data.
+LP-removal or dev-sell evidence). Real feature coverage was
+thin at v2.13: only collapse % (a 24h-fall proxy for
+peak-to-current collapse, 143/206) and liquidity (145/206) were
+present — the other 8 of the model's 10 features were always
+missing on DexScreener data. v2.15 filled 6 of those 8 (below).
+
+**v2.15 — ML feature enrichment: 6 of the 8 missing features
+filled from real on-chain data.** `src/feature_enrich.py`
+fetches the missing features for all 39 labelled records from
+the public Solana RPC (no key) and DexScreener:
+`getTokenLargestAccounts` + `getTokenSupply` for top shares
+and holder counts; `getSignaturesForAddress` +
+`getTransaction` for dev-sell / LP-removal / time-to-collapse
+/ transfers; `wash_score` and `cluster_size` from the fetched
+data with the existing `WashScore` / `StealthClusterDetector`.
+Coverage per labelled record (n=39): `lp_removed`,
+`time_to_collapse_minutes`, `wash_score`, `top1_share`,
+`top10_share`, `holder_count` all **0 → 39**; `dev_sold_pct`
+and `cluster_size` still **0/39** — the creation transaction
+is unreachable within the 3-page signature budget on the
+public RPC for every record, so no dev wallet is identified.
+A feature that cannot be fetched stays missing (the model
+imputes at the training mean) and is counted, never invented.
+Retraining (`python -m src.ml_train`, seed 42) gives train
+**1.00 / 1.00 / 1.00**, val **0.714 / 0.50 / 1.00**, test
+**1.00 / 1.00 / 1.00** (accuracy/precision/recall) — barely
+moved from v2.14, because val and test are 7 records each.
+The real change is the weights: collapse **+0.686**,
+time-to-collapse **−0.648**, wash **+0.563**, top1 **+0.841**,
+top10 **+0.517**, holder **+0.397**, liquidity **−1.733** —
+the model now uses **7 features** instead of 1 (liquidity
+still the largest single weight, top1 second). `lp_removed`
+is filled for all 39 but False for all of them (every labelled
+record holds ≥ $1,000 liquidity), so its weight is 0. Two
+live bugs were fixed during the run: the Token-2022 program
+constant was wrong (the commonly misremembered
+`…EPF3SfwV1CZ5LwU4MsS` holds no account; the real program is
+`TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb`), and a
+`dataSize: 165` filter on `getProgramAccounts` misses almost
+all Token-2022 accounts with extensions (60 of 16,676) —
+the query is now memcmp + dataSlice only. The model is still
+advisory-only; the ≥2 rugged mints + evidence flagging rule
+is unchanged.
+
+```bash
+python -m src.feature_enrich [--limit N] [--dataset <path>] [--checkpoint <path>] [--json]
+# Enriches the labelled records with on-chain features (public RPC, no key).
+# Exit 0 = done, 2 = invalid args / RPC unreachable after retries.
+python -m src.ml_train [--dataset <path>] [--out data/models] [--seed 42] [--json]
+# Stratified train/val/test split, real per-split metrics, persisted model + DB run row.
+```
 
 **v2.10 — pump.fun was tried and is blocked.** A second source
 was added (`PumpFunFetcher` in `src/real_data.py`): pump.fun
@@ -646,9 +692,24 @@ moved, no invented data:
 - **Creator / dev** — resolved via Helius DAS `getAsset`
   (the Metaplex creators array, highest share first),
   falling back to the fee payer of the mint's oldest fetched
-  creation transaction. If `HELIUS_API_KEY` is missing, the
-  dev half reports "dev unknown — no Helius key" and the
-  coin half still completes; a creator is never invented.
+  creation transaction. **No key needed (v2.16):** without
+  `HELIUS_API_KEY` the creator resolves from the Metaplex
+  metadata account via the public Solana RPC, else from the
+  oldest creation transaction found by paging the mint's
+  signature history backwards. A creator is never invented —
+  when it can't be resolved the verdict is `unknown`, never
+  `clean` (POOR's creator is honestly unresolvable keyless:
+  no metadata account, creation ~20k transactions back).
+- **Coin, no pair (v2.16)** — when DexScreener has no pair
+  for the mint, the coin half falls back to the public RPC
+  (supply, top holders, mint/freeze authority, name/symbol
+  from metadata). No price exists on-chain, so price /
+  market-cap / volume are explicit nulls and the card says
+  so. Both sources empty -> "no data found for this mint",
+  exit 2. BagsBack — no DexScreener pair — now returns a
+  full card this way: 4 holders, top holder 98.3%,
+  mint/freeze revoked, creator HIcat_, verdict "high-risk
+  pattern".
 - **Dev history** — the existing `DevHistoryBuilder` for the
   resolved dev: registry verdict, rugged-mint count, launches
   where known. The flagging rule is unchanged: `flagged`
@@ -679,8 +740,50 @@ moved, no invented data:
 python -m src.deep_check --mint <address> [--json] [--registry <path>]
   [--holders N] [--top10 0.4,0.2,...]
 # Exit 1 = flagged dev, 0 = done (not flagged), 2 = invalid args /
-#      invalid address / network error. Missing Helius key is NOT
-#      an error: the command completes with the coin half only.
+#      invalid address / network error / no data for this mint.
+#      Missing Helius key is NOT an error: the check runs keyless
+#      (v2.16) over the public Solana RPC instead.
+```
+
+## Dev check (v2.17)
+
+`src/dev_check.py` is the dev-wallet-first check — the manual
+POOR-dev bundled-wallet check, done by hand on 2026-11-13,
+as one command. Paste a dev wallet, get the dev + its bundled
+wallets, no mint needed. Stdlib + httpx only, no wallet, no
+funds moved, no invented data:
+
+- **Dev profile** — SOL balance + token-account count from
+  the public RPC (classic + Token-2022), pump.fun profile
+  link. No pump.fun display name and no realized PnL — both
+  reported unavailable, never guessed.
+- **Funder chain, two hops up** — first funder = sender of
+  the wallet's oldest funding transfer. Helius pages the full
+  history; the public-RPC path is bounded (3 pages x 1000
+  signatures, documented). An unresolvable hop reports
+  "unresolved" with its coverage — never an invented funder.
+- **Bundled-wallet test (the core)** — the dev's recent
+  coins, their top early buyers, each buyer's first funder
+  the same way. Bundled ONLY on a proven link: shared first
+  funder, funded by the dev, or funded the dev. Otherwise "no
+  direct bundle found"; if a funder can't be resolved the
+  verdict is "inconclusive" — and the report says it is NOT
+  a "no bundle" finding. A bundle alone never flags a dev.
+- **Verdict** — `DevHistoryBuilder` over the recent mints
+  (keyless, DexScreener outcomes) merged with registry rugged
+  mints; `flagged` still needs ≥ 2 rugged mints + evidence,
+  and the verdict states it covers the scanned window only.
+  The POOR-dev smoke test (no key) came back inconclusive:
+  the 1.5-year-old first funding is outside the public-RPC
+  window, so the module says so instead of faking the manual
+  "no direct bundle" finding — only the keyed Helius path
+  reaches that far back.
+
+```bash
+python -m src.dev_check --wallet <address> [--json] [--limit N]
+  [--coins N] [--buyers N] [--registry <path>]
+# Exit 1 = flagged dev, 0 = done (not flagged), 2 = invalid args /
+#      invalid address / no network.
 ```
 
 ## Clone & use in your project
@@ -906,7 +1009,10 @@ src/evidence.py         Muse-run evidence gathering + report (v2.2)
 src/watchtower.py       dev watchtower alerts (v2.3)
 src/kol_audit.py        KOL / fake-PnL auditor (v2.4)
 src/advanced.py         stealth clusters, exit sim, wash score, outcome tracker (v2.5)
-src/deep_check.py       one-command deep check: coin + dev + side wallets (v2.12)
+src/deep_check.py       one-command deep check: coin + dev + side wallets (v2.12, keyless v2.16)
+src/dev_check.py        dev-wallet-first check: profile + funder chain + bundled wallets (v2.17)
+src/public_rpc.py       shared public Solana RPC client + keyless fetch helpers (v2.16)
+src/feature_enrich.py   ML feature enrichment from the public RPC (v2.15)
 src/db.py               SQLite storage: mints, devs, transfers, funding edges, outcomes, alerts, model runs (v2.14)
 src/chain_index.py      own chain index from raw RPC transactions (v2.14)
 src/live_watch.py       live watcher daemon, 60s polls, deduped alerts (v2.14)
