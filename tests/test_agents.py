@@ -241,6 +241,22 @@ def test_alert_formats_flagged_and_under_review():
     assert "flagged serial rugger" in text.lower()
 
 
+def test_alert_run_scan_reports_real_counts():
+    # v2.6: when the scan actually runs, the alert must not claim it
+    # didn't run, and the rugged-mint count must be real, not 0.
+    verdicts = [
+        {"verdict": "flagged", "dev_wallet": FLAGGED, "rugged_mint_count": 2, "reasons": ["Flagged serial rugger: 2 rugged mints with on-chain evidence."]},
+        {"verdict": "under_review", "dev_wallet": UNDER, "rugged_mint_count": 1, "reasons": ["Under review."]},
+    ]
+    text = AlertAgent.format_daily_alert(
+        "2026-11-13", verdicts=verdicts, checked=5, scan_blocked=False
+    )
+    assert "Creations checked: 5" in text
+    assert "scan did not run" not in text
+    assert "no Helius key" not in text
+    assert "Dev wallets with a rugged mint today: 2" in text
+
+
 # -- Pipeline + CLI --------------------------------------------------------
 
 def test_pipeline_flagged_end_to_end(registry_data):

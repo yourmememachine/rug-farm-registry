@@ -28,8 +28,16 @@ def test_failed_but_honest_no_lp_no_dev_sell():
 
 
 def test_failed_but_honest_slow_bleed():
+    # Slow bleed, small dev sell: honest failure.
     assert label_outcome(MintEvent(100000, 20000, lp_removed=False,
-                                   dev_sold_pct=30, time_to_collapse_minutes=5000)) == "failed_but_honest"
+                                   dev_sold_pct=5, time_to_collapse_minutes=5000)) == "failed_but_honest"
+
+
+def test_slow_bleed_with_big_dev_sell_is_not_honest():
+    # v2.6: a slow bleed where the dev sold 80% is not an honest
+    # failure — the dev sold, so it is inconclusive, not honest.
+    assert label_outcome(MintEvent(100000, 15000, lp_removed=False,
+                                   dev_sold_pct=80, time_to_collapse_minutes=3000)) == "inconclusive"
 
 
 def test_inconclusive_missing_data():

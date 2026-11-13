@@ -1,6 +1,8 @@
+import copy
 from datetime import date
 
 from src.registry import (
+    add_or_update_entry,
     check_wallet,
     is_expired,
     is_flagged,
@@ -116,3 +118,30 @@ def test_check_unknown_wallet():
     result = check_wallet(data, "Unknown111111111111111111111111111111", today=TODAY)
     assert result["flagged"] is False
     assert result["risk_level"] == "unknown"
+
+
+def test_failed_merge_does_not_mutate_existing_entry():
+    # v2.6: merging into an entry that stays invalid must leave the
+    # existing entry untouched, even though the merge is rejected.
+    # The existing entry is flagged with only 1 rugged mint (invalid);
+    # the incoming entry adds a failed-but-honest mint, so the merged
+    # entry is still flagged with 1 rugged mint and fails validation.
+    existing = _sample_entry(
+        status="flagged",
+        rugged_mints=[_sample_entry()["rugged_mints"][0]],
+    )
+    incoming = _sample_entry(
+        status="under_review",
+        rugged_mints=[
+            {"mint": "SAMPLEMNT3333333333333333333333333333333",
+             "outcome": "failed_but_honest", "peak_market_cap_usd": 100000,
+             "current_market_cap_usd": 20000,
+             "evidence": {"solscan_mint": "https://solscan.io/token/z"}},
+        ],
+    )
+    data = {"entries": [existing]}
+    before = copy.deepcopy(existing)
+    ok, message = add_or_update_entry(data, incoming)
+    assert ok is False
+    assert "merged entry invalid" in message
+    assert existing == before
