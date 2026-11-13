@@ -2,6 +2,172 @@
 
 All notable changes to the Open Rug-Farm Registry.
 
+## v2.12 — 2026-11-13
+
+- Deep check: the whole manual POOR-coin check as one command
+  (`src/deep_check.py`, `python -m src.deep_check --mint
+  <address> [--json] [--registry <path>]`). One full card per
+  mint: live DexScreener coin data (price, market cap,
+  liquidity, 24h volume, 24h change, buy/sell txns, pair age —
+  no key, reusing `src/pump_watch.py` patterns), creator/dev
+  resolution via Helius DAS `getAsset` with a creation-transaction
+  fallback, dev history via the existing `DevHistoryBuilder`,
+  side wallets from `fetch_funding_transfers` plus early buyers
+  from Helius signatures on the mint (first minutes,
+  token-balance diffs), `StealthClusterDetector` over the
+  funding events, and `WashScore` only when holder data is
+  supplied. The flagging rule is unchanged: `flagged` still
+  needs >= 2 rugged mints + evidence; a suspicious pattern
+  alone is `high-risk pattern`, never `flagged`. Exit 1 =
+  flagged dev, 0 = done (not flagged), 2 = invalid args /
+  invalid address / network error. A missing HELIUS_API_KEY
+  is NOT an error: the dev half reports "dev unknown — no
+  Helius key" and the command completes with the coin half.
+  Never invents a creator; honest limits are in the report
+  (funding scan covers only the most recent signatures per
+  wallet; the early-buyer window may not reach creation; no
+  Bubblemaps API — funding clusters only).
+- 32 new tests in `tests/test_deep_check.py` (mocked data
+  only, no network): coin parsing, creator resolution from
+  mocked DAS metadata and from the creation-transaction
+  fallback, early-buyer aggregation, side-wallet links
+  (including the funder-is-early-buyer POOR pattern),
+  cluster wiring, verdicts, report rendering (text + JSON),
+  CLI exit codes, and no-key degradation. Full suite: **453
+  tests, all passing**.
+- Live hand-check: `python -m src.deep_check --mint
+  9oJk7eMccQchx3evoN5C5pKQD5Xodb4C1qkhemjjpump` (POOR) with
+  no key returns the live coin card (price $0.00003984, market
+  cap $39,783, liquidity $14,127, 24h volume $252,694, +25.4%,
+  pair created 2026-11-13T18:43:41Z) and "Dev unknown — no
+  Helius key", exit 0.
+
+## v2.11 — 2026-11-13
+
+- Added a third real data source for the ML model: documented
+  rugged mints (`src/real_data.py` — `load_documented_list`,
+  `verify_documented_mints`, `format_documented_summary`),
+  because discovery feeds never surface dead rugs. A
+  caller-supplied JSON list of {mint, source} pairs (each
+  address verbatim from a public source, `source` = that
+  source's URL) is verified live via the DexScreener /tokens/
+  lookup and labelled with the SAME fixed "real-v1" rule — no
+  threshold changes. Invalid addresses are rejected without a
+  fetch; mints with no pair yield no record. CLI `python -m
+  src.real_data --verify-documented <list.json> [--out
+  data/ml_real_dataset.json]`, exit 0 = ok, 2 = invalid args /
+  network error / bad list.
+- **Researched 14 documented rugged mints**
+  (`data/documented_rugged_mints.json`, each with its public
+  source URL): LIBRA (Milei, CoinTelegraph/Arkham-documented),
+  HAWK (overHere launch, Blockchain Reporter), CAR (Decrypt),
+  plus 10 pump.fun mints documented as rugged by
+  loopholetape's public rule and 1 graduated control (KNTQ).
+  Two famous mints were NOT used: the Gen Z Quant (QUANT)
+  mint never appears verbatim in any public source found, and
+  an older "Libra" (7Zt2…) on solanatracker is a different
+  token from the Milei LIBRA (pair created July 2024,
+  Astrofolio) — caught by the DexScreener cross-check and
+  dropped.
+- **Honest result: still 0 rugged-like, so the model still
+  refuses to train and there are still NO real held-out
+  metrics.** Live verification on 2026-11-13: 7 of 14 verified
+  with a DexScreener pair, 7 dropped (no pair at all —
+  confirmed independently for PEACE and MEME, which
+  DexScreener returns [] for despite having graduated), 0
+  rejected. All 7 verified labelled "excluded" by the fixed
+  rule: the famous three still hold real liquidity
+  ($4.4k–$201k) and market cap ($870k–$2.9M), so neither
+  rugged branch fires; the four loopholetape rugs are nearly
+  dead (market cap ~$1.5–1.8k, volume $0.09–$414) but their
+  migrated pools still hold ~$1.6–1.9k liquidity (branch B
+  needs < $100) and they are 5.7–5.9 days old (branch B needs
+  ≥ 7 days). Merged dataset is now 206 records (0
+  rugged-like, 27 survived, 179 excluded). No synthetic data
+  was used to fake a "real" claim. What would actually
+  produce rugged examples under real-v1: a documented rug
+  re-checked once its pool drains below $100 liquidity and it
+  is ≥ 7 days old, or a rug caught mid-collapse (24h change
+  ≤ −70% with < $1k liquidity) — both are timing, not new
+  sources.
+- Added `tests/test_documented_rugs.py` (12 tests, mocked HTTP
+  only, no network). 421 tests total.
+
+## v2.10 — 2026-11-13
+
+- Added a second real data source for the ML model: pump.fun
+  launches (`src/real_data.py` — `PumpFunFetcher`,
+  `parse_pumpfun_coin`, `fetch_pumpfun_records`,
+  `merge_datasets`), because DexScreener discovery only surfaces
+  tokens alive enough to be listed. Launches are paged at
+  increasing offsets for an age spread, enriched via the
+  DexScreener /tokens/ lookup, and labelled with the SAME fixed
+  "real-v1" rule — the source only changes which mints are
+  sampled, never the labelling. Merge dedupes by mint (existing
+  records win) and writes a `<name>.summary.json` sidecar with
+  per-source counts. CLI `python -m src.real_data
+  --fetch-pumpfun [--pumpfun-limit N] --out
+  data/ml_real_dataset.json`, exit 0 = ok, 2 = invalid args /
+  network error / too few usable tokens.
+- **Honest result: the pump.fun frontend API is BLOCKED from
+  this environment, so the dataset is unchanged and the model
+  still refuses to train.** Two live fetch attempts on
+  2026-11-13: (1) transport error, "peer closed connection
+  without sending complete message body (incomplete chunked
+  read)"; (2) HTTP 403 Forbidden on `GET /coins?offset=0
+  &limit=50&sort=created_timestamp&order=DESC
+  &includeNsfw=false`. No records were fetched, nothing was
+  merged, and no synthetic data was used to fake a "real" claim.
+  `data/ml_real_dataset.json` stays at 199 real tokens (0
+  rugged-like, 27 survived, 172 excluded) and `python -m
+  src.ml_model --train data/ml_real_dataset.json` still refuses
+  with "need at least 2 rugged examples" (exit 2). There are
+  still NO real held-out metrics. A real proof needs rugged
+  examples from a source reachable from here — e.g. Helius
+  dev-wallet histories, which use the already-working Helius key
+  instead of a blocked public API.
+- Added `tests/test_pumpfun_data.py` (20 tests, mocked HTTP only,
+  no network). 409 tests total.
+
+## v2.9 — 2026-11-13
+
+- Added `src/real_data.py`: real-world validation data for the
+  ML model — fetches real Solana meme coins from DexScreener's
+  public API (no key) and labels them from real observable
+  market facts. CLI `python -m src.real_data --fetch [--limit
+  N] --out <path> [--json]`, exit 0 = ok, 2 = invalid args /
+  network error / too few usable tokens.
+- **Real-world result: INSUFFICIENT REAL DATA — the model is
+  still unproven on real data, and this release says so
+  plainly instead of flattering it.** Dataset
+  `data/ml_real_dataset.json` (committed, auditable): 199 real
+  tokens fetched 2026-11-13 from token profiles + boosts + 15
+  search queries, batched /tokens/ lookups. Labelled by rule
+  "real-v1" (fixed BEFORE the fetch, never tuned after seeing
+  the data): **0 rugged-like, 27 survived, 172 excluded**
+  (ambiguous middle). `python -m src.ml_model --train
+  data/ml_real_dataset.json` refuses with "need at least 2
+  rugged examples" (exit 2), so there are NO real held-out
+  metrics to report — no accuracy, precision or recall on real
+  data, and no synthetic data was used to fake a "real" claim.
+  Why 0 rugged: DexScreener's public discovery (profiles,
+  boosts, search) only surfaces tokens alive enough to be
+  listed or searched — dead tokens are invisible to it. All 16
+  tokens that fell >= 70% in 24h were under 1 day old (launch
+  noise, correctly excluded by the rule's age floor) or still
+  liquid and trading; only 1 of 199 tokens had liquidity under
+  $1,000, and 0 had liquidity under $100. Feature coverage on
+  real data: only collapse % (24h-fall proxy, 138/199) and
+  liquidity (138/199) are present — the other 8 of the model's
+  10 features (dev sell, LP removed, time-to-collapse, wash,
+  holder shares, holder count, cluster size) are always
+  missing on DexScreener data, never invented. Next step for a
+  real proof: rugged examples need a source that surfaces dead
+  tokens (e.g. Helius dev-wallet histories), not more
+  DexScreener discovery.
+- Added `tests/test_real_data.py` (23 tests, mocked HTTP only,
+  no network). 389 tests total.
+
 ## v2.8 — 2026-11-13
 
 - Added `src/ml_model.py`: a machine-learning rug-risk model —

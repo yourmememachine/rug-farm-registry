@@ -516,6 +516,158 @@ python -m src.ml_model --evaluate --model model.json --data outcomes.json
 python -m src.dev_history --wallet <address> --ml-model model.json
 ```
 
+## Real-world validation (v2.9–v2.11)
+
+`src/real_data.py` fetches real Solana meme coins from
+DexScreener's public API (no key) and labels them from real
+observable market facts, so the model can be trained and
+evaluated on the real world instead of synthetic data. The
+labelling rule ("real-v1") was fixed before any fetch and is
+saved on every record in `data/ml_real_dataset.json`:
+
+- **Rugged-like** — fresh collapse (24h change ≤ −70% AND
+  liquidity < $1,000 AND 24h volume < $1,000 AND pair age ≥ 1
+  day) OR long-dead (liquidity < $100 AND 24h volume < $100
+  AND market cap < $5,000 AND pair age ≥ 7 days).
+- **Survived** — liquidity ≥ $10,000 AND 24h volume ≥ $5,000
+  AND 24h change > −30% AND pair age ≥ 7 days.
+- **Excluded** — everything else; the ambiguous middle is
+  excluded, not forced into either class. Missing data never
+  satisfies a threshold.
+
+**Honest result: insufficient real data.** The committed dataset
+has 206 real tokens (fetched 2026-11-13) labelled **0
+rugged-like, 27 survived, 179 excluded**, and `src.ml_model
+--train` refuses it ("need at least 2 rugged examples", exit
+2). There are no real held-out metrics — no accuracy,
+precision or recall on real data — and no synthetic data was
+used to fake a "real" claim. Why: DexScreener's public
+discovery (profiles, boosts, search) only surfaces tokens alive
+enough to be listed or searched; dead tokens are invisible to
+it. All 16 tokens that fell ≥ 70% in 24h were under 1 day old
+(launch noise) or still liquid and trading; only 1 of 199 had
+liquidity under $1,000. Real feature coverage is also thin:
+only collapse % (a 24h-fall proxy for peak-to-current collapse,
+143/206) and liquidity (145/206) are present — the other 8 of
+the model's 10 features are always missing on DexScreener data.
+Labels here are observable-market-fact labels, not verified rug
+verdicts (DexScreener provides no dev-wallet, LP-removal or
+dev-sell evidence). A real proof needs rugged examples from a
+source that surfaces dead tokens, e.g. Helius dev-wallet
+histories.
+
+**v2.10 — pump.fun was tried and is blocked.** A second source
+was added (`PumpFunFetcher` in `src/real_data.py`): pump.fun
+launches, paged at increasing offsets for an age spread, enriched
+via DexScreener and labelled with the same fixed "real-v1" rule.
+Two live fetch attempts on 2026-11-13 both failed — first a
+transport error ("peer closed connection without sending complete
+message body"), then HTTP 403 Forbidden on the coins endpoint —
+so no pump.fun records were fetched, nothing was merged, and the
+dataset is unchanged (199 tokens, 0 rugged-like, 27 survived,
+172 excluded). The fetcher and its 20 mocked tests are committed
+so the attempt is reproducible if the API ever becomes reachable,
+but there are still no real held-out metrics. The next candidate
+source is Helius dev-wallet histories, which use the
+already-working Helius key instead of a blocked public API.
+
+**v2.11 — documented rugged mints were researched and
+verified, and still produced 0 rugged-like.** A third source
+was added (`verify_documented_mints` in `src/real_data.py`):
+a caller-supplied JSON list of {mint, source} pairs, where
+each address appears verbatim in a public source and `source`
+is that source's URL. 14 documented mints were researched
+(`data/documented_rugged_mints.json`): LIBRA (Milei),
+HAWK (overHere launch), CAR, plus 10 pump.fun mints
+documented as rugged by loopholetape's public rule and 1
+graduated control (KNTQ). Live verification on 2026-11-13:
+7 verified with a DexScreener pair, 7 dropped (no pair at
+all — confirmed independently for PEACE and MEME, which
+DexScreener returns `[]` for despite having graduated), 0
+rejected. All 7 verified labelled **excluded** by the fixed
+rule: the famous three still hold real liquidity ($4.4k–$201k)
+and market cap ($870k–$2.9M), so neither rugged branch fires;
+the four loopholetape rugs are nearly dead (market cap
+~$1.5–1.8k, volume $0.09–$414) but their migrated pools
+still hold ~$1.6–1.9k liquidity (branch B needs < $100) and
+they are 5.7–5.9 days old (branch B needs ≥ 7 days). Two
+famous mints were deliberately NOT used: the Gen Z Quant
+(QUANT) mint never appears verbatim in any public source
+found, and an older "Libra" (7Zt2…) on solanatracker is a
+different token from the Milei LIBRA (pair created July
+2024, Astrofolio) — caught by the DexScreener cross-check
+and dropped. The dataset is now 206 records (0 rugged-like,
+27 survived, 179 excluded) and the model still refuses to
+train. What would actually produce rugged examples under
+real-v1: a documented rug re-checked once its pool drains
+below $100 liquidity and it is ≥ 7 days old, or a rug caught
+mid-collapse (24h change ≤ −70% with < $1k liquidity) —
+both are timing, not new sources.
+
+```bash
+python -m src.real_data --fetch [--limit 200] [--out data/ml_real_dataset.json] [--json]
+# Exit 0 = ok, 2 = invalid args / network error / too few usable tokens.
+python -m src.real_data --fetch-pumpfun [--pumpfun-limit 300] [--out data/ml_real_dataset.json] [--json]
+# Merges pump.fun launches into the dataset at --out (deduped by mint).
+python -m src.real_data --verify-documented data/documented_rugged_mints.json [--out data/ml_real_dataset.json] [--json]
+# Verifies a JSON list of documented rugged mints and merges the verified records (deduped by mint).
+python -m src.ml_model --train data/ml_real_dataset.json --model data/ml_real_model.json
+```
+
+## Deep check (v2.12)
+
+`src/deep_check.py` is the whole manual POOR-coin check —
+DexScreener + Solscan + pump.fun profile + Bubblemaps, done
+by hand on 2026-11-13 — as one command. Paste a mint, get
+one full card: live coin, dev, side wallets, clusters, wash,
+and a verdict. Stdlib + httpx only, no wallet, no funds
+moved, no invented data:
+
+- **Coin** — live DexScreener data, no key (same patterns as
+  `src/pump_watch.py`): price, market cap, liquidity, 24h
+  volume, 24h change, buy/sell txns, pair age, and a
+  `watch_label` outcome. A fresh pumping coin is
+  `inconclusive`, not a verdict — too new to call.
+- **Creator / dev** — resolved via Helius DAS `getAsset`
+  (the Metaplex creators array, highest share first),
+  falling back to the fee payer of the mint's oldest fetched
+  creation transaction. If `HELIUS_API_KEY` is missing, the
+  dev half reports "dev unknown — no Helius key" and the
+  coin half still completes; a creator is never invented.
+- **Dev history** — the existing `DevHistoryBuilder` for the
+  resolved dev: registry verdict, rugged-mint count, launches
+  where known. The flagging rule is unchanged: `flagged`
+  still needs ≥ 2 rugged mints + evidence.
+- **Side wallets** — funding transfers for the dev
+  (`fetch_funding_transfers`) plus the mint's early buyers
+  from Helius signatures (first minutes, token-balance diffs),
+  each link labelled with its evidence: who funded the dev
+  (amount, date), who the dev funded, which early buyers are
+  linked to the dev by funding — including the POOR pattern,
+  a funder who funded the dev AND bought in the first minute.
+  Funding scan covers only the most recent signatures per
+  wallet; the early-buyer window may not reach creation, and
+  the report says so when it does not.
+- **Clusters & wash** — the early buyers' funding events go
+  through `StealthClusterDetector` (pre-funded, delayed buys,
+  shared funders); `WashScore` runs only when holder data is
+  supplied (`--holders` / `--top10`), otherwise it reports
+  insufficient data instead of guessing.
+- **Verdict** — `flagged` (≥ 2 rugged + evidence only) /
+  `under_review` / `high-risk pattern` (a suspicious pattern
+  alone, never `flagged`) / `clean` / `unknown` /
+  `insufficient_data`. One text report and one JSON report
+  (`--json`); the JSON carries the exact evidence links, so
+  every claim can be checked by hand.
+
+```bash
+python -m src.deep_check --mint <address> [--json] [--registry <path>]
+  [--holders N] [--top10 0.4,0.2,...]
+# Exit 1 = flagged dev, 0 = done (not flagged), 2 = invalid args /
+#      invalid address / network error. Missing Helius key is NOT
+#      an error: the command completes with the coin half only.
+```
+
 ## Clone & use in your project
 
 Developers can clone the repo and use the registry from their own
@@ -693,6 +845,7 @@ src/evidence.py         Muse-run evidence gathering + report (v2.2)
 src/watchtower.py       dev watchtower alerts (v2.3)
 src/kol_audit.py        KOL / fake-PnL auditor (v2.4)
 src/advanced.py         stealth clusters, exit sim, wash score, outcome tracker (v2.5)
+src/deep_check.py       one-command deep check: coin + dev + side wallets (v2.12)
 src/check_cli.py        pre-trade check CLI (exit 1 = flagged)
 src/pump_watch.py       pump.fun watchlist, no key (collapsed / thin / active)
 src/rugfarm.py          single-file stdlib-only SDK for developers (clone-ready)
