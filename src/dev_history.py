@@ -206,6 +206,11 @@ class DevHistory:
     mints: list[MintRecord] = field(default_factory=list)
     first_seen: str | None = None
     last_seen: str | None = None
+    # Advisory ML score (see src.ml_model.score_dev_history), only
+    # set when a model is supplied. It NEVER changes the verdict
+    # above — the >= 2 rugged mints + evidence rule is the only
+    # flagging path.
+    ml_score: dict | None = None
 
     @classmethod
     def from_records(cls, dev_wallet: str, mints: list[MintRecord]) -> "DevHistory":
@@ -297,6 +302,7 @@ class DevHistory:
             "counts_by_outcome": self.counts_by_outcome(),
             "first_seen": self.first_seen,
             "last_seen": self.last_seen,
+            "ml_score": self.ml_score,
             "mints": [m.to_dict() for m in self.mints],
             "draft_entry": self.draft_entry(),
         }
@@ -340,7 +346,20 @@ class DevHistory:
                 "Draft registry entry available (see --json). "
                 "Review it before adding anything to the registry."
             )
-        elif self.verdict == "insufficient_data":
+        if self.ml_score is not None:
+            lines.append("")
+            lines.append(
+                "ML risk (advisory only — never changes the verdict "
+                "above): "
+                + (
+                    f"{self.ml_score.get('band', '?').upper()} "
+                    f"(max mint probability "
+                    f"{self.ml_score.get('max_probability')})"
+                    if self.ml_score.get("max_probability") is not None
+                    else "no mint could be scored"
+                )
+            )
+        if self.verdict == "insufficient_data":
             lines.append("")
             lines.append(
                 "No usable market data for this wallet's mints — "
@@ -377,7 +396,10 @@ class DevHistoryBuilder:
         limit: int = 50,
         creations: list[TokenCreation] | None = None,
         outcomes: dict[str, MintOutcome] | None = None,
+        ml_model=None,
     ) -> DevHistory:
+        """Build the history; ``ml_model`` (a RugRiskModel, optional)
+        adds an advisory ML score — it never changes the verdict."""
         if not is_valid_solana_address(dev_wallet):
             raise ValueError(f"'{dev_wallet}' is not a valid Solana address.")
         if limit < 1:
@@ -434,7 +456,14 @@ class DevHistoryBuilder:
                     )
             records.append(record_from_outcome(creation, outcome))
         records = self._merge_registry(dev_wallet, records)
-        return DevHistory.from_records(dev_wallet, records)
+        history = DevHistory.from_records(dev_wallet, records)
+        if ml_model is not None:
+            # Advisory only: the score is attached, the verdict
+            # above is untouched (see src.ml_model.score_dev_history).
+            from .ml_model import score_dev_history
+
+            history.ml_score = score_dev_history(history, ml_model)
+        return history
 
     def _fetch_creations(self, dev_wallet: str, limit: int) -> list[TokenCreation]:
         """Creations by this dev, from their Helius signature history.
@@ -503,6 +532,12 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Registry JSON path to merge (default: data/registry.json if it exists)",
     )
+    parser.add_argument(
+        "--ml-model",
+        type=str,
+        default=None,
+        help="Trained ML model JSON (src.ml_model) — adds an advisory risk score; never changes the verdict",
+    )
     args = parser.parse_args(argv)
 
     if not is_valid_solana_address(args.wallet):
@@ -533,8 +568,17 @@ def main(argv: list[str] | None = None) -> int:
             return EXIT_BLOCKED
 
     builder = DevHistoryBuilder(client, registry_data)
+    ml_model = None
+    if args.ml_model:
+        try:
+            from .ml_model import load_model
+
+            ml_model = load_model(args.ml_model)
+        except ValueError as exc:
+            print(f"ERROR: cannot load ML model {args.ml_model}: {exc}", file=sys.stderr)
+            return EXIT_BLOCKED
     try:
-        history = builder.build(args.wallet, limit=args.limit)
+        history = builder.build(args.wallet, limit=args.limit, ml_model=ml_model)
     except (RuntimeError, httpx.HTTPError) as exc:
         print(f"ERROR: dev history failed: {exc}", file=sys.stderr)
         return EXIT_BLOCKED
