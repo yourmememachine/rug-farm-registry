@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-13T19:33:02.416216+00:00",
+  "generated_at": "2026-11-13T20:37:22.496718+00:00",
   "labelling_rule_version": "real-v2",
   "sources": {
     "dexscreener": 199,
@@ -29,16 +29,18 @@
     },
     "feature_coverage": {
       "collapse_pct": 143,
+      "dev_sold_pct": 0,
+      "lp_removed": 39,
+      "time_to_collapse_minutes": 39,
+      "wash_score": 39,
+      "top1_share": 39,
+      "top10_share": 39,
+      "holder_count": 39,
+      "cluster_size": 0,
       "liquidity_usd": 145
     },
     "features_always_missing": [
       "dev_sold_pct",
-      "lp_removed",
-      "time_to_collapse_minutes",
-      "wash_score",
-      "top1_share",
-      "top10_share",
-      "holder_count",
       "cluster_size"
     ]
   },

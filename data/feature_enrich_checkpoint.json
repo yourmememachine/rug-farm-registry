@@ -1,0 +1,1566 @@
+{
+  "dataset": "data/ml_real_dataset.json",
+  "updated_at": "2026-11-13T20:37:22.481322+00:00",
+  "records": {
+    "7sGdNQSvUGpahh6qyXB3g5gsdK9FAzZM299KyCXspump": {
+      "mint": "7sGdNQSvUGpahh6qyXB3g5gsdK9FAzZM299KyCXspump",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 477668,
+        "top1_share": 0.104497,
+        "top10_share": 0.382105,
+        "holder_count": 16624,
+        "wash_score": 5.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 100821.37 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "derived_age",
+          "basis": "age at enrichment (no collapse observed)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "16676 token accounts, 16624 distinct owners (program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 5/100 (low) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "DtcicPCKTKeAh7TDEzTym3hXeoHAoMiBdYJhMYxZpump": {
+      "mint": "DtcicPCKTKeAh7TDEzTym3hXeoHAoMiBdYJhMYxZpump",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 54827,
+        "top1_share": 0.135813,
+        "top10_share": 0.371495,
+        "holder_count": 5222,
+        "wash_score": 5.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 208428.11 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "derived_age",
+          "basis": "age at enrichment (no collapse observed)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "5227 token accounts, 5222 distinct owners (program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 5/100 (low) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "UNbT74tbUhtPM8YWmBTbWk9JxbAeNQCQP89jjWnpump": {
+      "mint": "UNbT74tbUhtPM8YWmBTbWk9JxbAeNQCQP89jjWnpump",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 1015193,
+        "top1_share": 0.297681,
+        "top10_share": 0.529196,
+        "holder_count": 11533,
+        "wash_score": 25.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 20701.84 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "derived_age",
+          "basis": "age at enrichment (no collapse observed)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "11539 token accounts, 11533 distinct owners (program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 25/100 (low) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "6mXFCoZ515w37YfmwXGJMPfQfiK5tr9WkihW3oN9pump": {
+      "mint": "6mXFCoZ515w37YfmwXGJMPfQfiK5tr9WkihW3oN9pump",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 16020,
+        "top1_share": 0.110177,
+        "top10_share": 0.31181,
+        "holder_count": 11664,
+        "wash_score": 5.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 43874.51 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "derived_age",
+          "basis": "age at enrichment (no collapse observed)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "11684 token accounts, 11664 distinct owners (program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 5/100 (low) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "GexThZHgaswpAQ7Fi8QrHFubjPimUNSYhJiAA7XZpump": {
+      "mint": "GexThZHgaswpAQ7Fi8QrHFubjPimUNSYhJiAA7XZpump",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 20283,
+        "top1_share": 0.03948,
+        "top10_share": 0.292765,
+        "holder_count": 16235,
+        "wash_score": 0.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 114268.47 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "derived_age",
+          "basis": "age at enrichment (no collapse observed)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "16243 token accounts, 16235 distinct owners (program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 0/100 (low) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "BWJfBNeXpapG7uoqByp5KSwWgCQba8QcDmA2DQiEpump": {
+      "mint": "BWJfBNeXpapG7uoqByp5KSwWgCQba8QcDmA2DQiEpump",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 11557,
+        "top1_share": 0.053195,
+        "top10_share": 0.251063,
+        "holder_count": 7167,
+        "wash_score": 0.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 74731.75 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "derived_age",
+          "basis": "age at enrichment (no collapse observed)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "7173 token accounts, 7167 distinct owners (program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 0/100 (low) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "Aov3BtQvrGXM5V9oiHu8PKJWeV8a2rFnr24fwWcNpump": {
+      "mint": "Aov3BtQvrGXM5V9oiHu8PKJWeV8a2rFnr24fwWcNpump",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 53030,
+        "top1_share": 0.217055,
+        "top10_share": 0.48896,
+        "holder_count": 1315,
+        "wash_score": 15.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 14591.92 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "derived_age",
+          "basis": "age at enrichment (no collapse observed)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "1317 token accounts, 1315 distinct owners (program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 15/100 (low) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "HsprHxBRgiVaQdRf3TnKNuZZtaX9JUSPgMFdAkk6pump": {
+      "mint": "HsprHxBRgiVaQdRf3TnKNuZZtaX9JUSPgMFdAkk6pump",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 115670,
+        "top1_share": 0.031624,
+        "top10_share": 0.177551,
+        "holder_count": 26291,
+        "wash_score": 0.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 271138.96 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "derived_age",
+          "basis": "age at enrichment (no collapse observed)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "26493 token accounts, 26291 distinct owners (program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 0/100 (low) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "pumpCmXqMfrsAkQ5r49WcJnRayYRqmXz6ae8H7H9Dfn": {
+      "mint": "pumpCmXqMfrsAkQ5r49WcJnRayYRqmXz6ae8H7H9Dfn",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 610844,
+        "top1_share": 0.278588,
+        "top10_share": 0.593421,
+        "holder_count": 1374541,
+        "wash_score": 25.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 2222046.53 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "derived_age",
+          "basis": "age at enrichment (no collapse observed)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "1381136 token accounts, 1374541 distinct owners (program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 25/100 (low) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "9593dFjsLKKRAaz4LX1eK2DDEgrzfu3idb6yvMysD6A1": {
+      "mint": "9593dFjsLKKRAaz4LX1eK2DDEgrzfu3idb6yvMysD6A1",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 149210,
+        "top1_share": 0.908927,
+        "top10_share": 0.999977,
+        "holder_count": 70,
+        "wash_score": 85.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 2050309.09 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "derived_age",
+          "basis": "age at enrichment (no collapse observed)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "70 token accounts, 70 distinct owners (program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 85/100 (high) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263": {
+      "mint": "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 2043675,
+        "top1_share": 0.103951,
+        "top10_share": 0.409093,
+        "holder_count": 2097669,
+        "wash_score": 5.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 263769.74 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "derived_age",
+          "basis": "age at enrichment (no collapse observed)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "2108505 token accounts, 2097669 distinct owners (program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 5/100 (low) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "7nfd3f4sxQcMgxEbvNFu3UJstmLXcWUywAsts5xuiFF3": {
+      "mint": "7nfd3f4sxQcMgxEbvNFu3UJstmLXcWUywAsts5xuiFF3",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 120412,
+        "top1_share": 0.914211,
+        "top10_share": 0.999996,
+        "holder_count": 48,
+        "wash_score": 85.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 3656639.63 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "derived_age",
+          "basis": "age at enrichment (no collapse observed)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "48 token accounts, 48 distinct owners (program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 85/100 (high) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "3Dqb9PytTmkjvf9AGus1m2brGoc2VcVxBULTcHRaMPPn": {
+      "mint": "3Dqb9PytTmkjvf9AGus1m2brGoc2VcVxBULTcHRaMPPn",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 333086,
+        "top1_share": 0.87517,
+        "top10_share": 0.999988,
+        "holder_count": 47,
+        "wash_score": 85.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 2281820.18 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "derived_age",
+          "basis": "age at enrichment (no collapse observed)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "47 token accounts, 47 distinct owners (program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 85/100 (high) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "PEPEqnuuCDbBC89p1u9vpnP1KQ2oj1xTcQBsjt9X55m": {
+      "mint": "PEPEqnuuCDbBC89p1u9vpnP1KQ2oj1xTcQBsjt9X55m",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 80525,
+        "top1_share": 0.093278,
+        "top10_share": 0.394312,
+        "holder_count": 79415,
+        "wash_score": 0.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 61596.53 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "derived_age",
+          "basis": "age at enrichment (no collapse observed)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "82237 token accounts, 79415 distinct owners (program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 0/100 (low) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "Ci11wAJVj4tMeBo4EJUUKNnejAvHorcktcMSHmSLQdx4": {
+      "mint": "Ci11wAJVj4tMeBo4EJUUKNnejAvHorcktcMSHmSLQdx4",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 123251,
+        "top1_share": 0.988231,
+        "top10_share": 0.999999,
+        "holder_count": 54,
+        "wash_score": 85.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 73732755.63 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "derived_age",
+          "basis": "age at enrichment (no collapse observed)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "54 token accounts, 54 distinct owners (program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 85/100 (high) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "7jLnAzioUb6Qh9uMq6AC4AUH9LdNKudRrdPkCXC39vE9": {
+      "mint": "7jLnAzioUb6Qh9uMq6AC4AUH9LdNKudRrdPkCXC39vE9",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 169403,
+        "top1_share": 0.997215,
+        "top10_share": 1.0,
+        "holder_count": 38,
+        "wash_score": 85.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 72153491.91 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "derived_age",
+          "basis": "age at enrichment (no collapse observed)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "38 token accounts, 38 distinct owners (program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 85/100 (high) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "Gzsz28orh7mRUmcoBYRS4NBCN1HUUz9ixZdn24B6KjG2": {
+      "mint": "Gzsz28orh7mRUmcoBYRS4NBCN1HUUz9ixZdn24B6KjG2",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 304533,
+        "top1_share": 0.820401,
+        "top10_share": 1.0,
+        "holder_count": 34,
+        "wash_score": 85.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 788577.22 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "derived_age",
+          "basis": "age at enrichment (no collapse observed)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "34 token accounts, 34 distinct owners (program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 85/100 (high) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "9bMvs6e2PRpmBUsNd9SHGNBMR1jxQ6PN1UbSZgjvEyrt": {
+      "mint": "9bMvs6e2PRpmBUsNd9SHGNBMR1jxQ6PN1UbSZgjvEyrt",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 76553,
+        "top1_share": 0.954624,
+        "top10_share": 0.999992,
+        "holder_count": 59,
+        "wash_score": 85.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 5679623.35 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "derived_age",
+          "basis": "age at enrichment (no collapse observed)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "59 token accounts, 59 distinct owners (program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 85/100 (high) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "HBnDpTaKRvfiH9RjDnMexavq4GwCQ2BPg4t4YScBhe2P": {
+      "mint": "HBnDpTaKRvfiH9RjDnMexavq4GwCQ2BPg4t4YScBhe2P",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 159310,
+        "top1_share": 0.628226,
+        "top10_share": 0.999994,
+        "holder_count": 37,
+        "wash_score": 85.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 344281.26 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "derived_age",
+          "basis": "age at enrichment (no collapse observed)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "37 token accounts, 37 distinct owners (program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 85/100 (high) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "3UQZMLt98j9T1egWLKkz51pwFQWakwzQtse56TGbavXP": {
+      "mint": "3UQZMLt98j9T1egWLKkz51pwFQWakwzQtse56TGbavXP",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 303268,
+        "top1_share": 0.780608,
+        "top10_share": 0.999971,
+        "holder_count": 32,
+        "wash_score": 85.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 475016.79 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "derived_age",
+          "basis": "age at enrichment (no collapse observed)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "32 token accounts, 32 distinct owners (program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 85/100 (high) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "shib5gSoVKPjwkXrxRk7SbQFzb2R9rQB3TgQWYX4RwW": {
+      "mint": "shib5gSoVKPjwkXrxRk7SbQFzb2R9rQB3TgQWYX4RwW",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 57849,
+        "top1_share": 0.256527,
+        "top10_share": 0.681931,
+        "holder_count": 12229,
+        "wash_score": 40.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 56249.29 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "derived_age",
+          "basis": "age at enrichment (no collapse observed)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "13015 token accounts, 12229 distinct owners (program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 40/100 (medium) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "6p6xgHyF7AeE6TZkSmFsko444wqoP15icUSqi2jfGiPN": {
+      "mint": "6p6xgHyF7AeE6TZkSmFsko444wqoP15icUSqi2jfGiPN",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 956741,
+        "top1_share": 0.718133,
+        "top10_share": 0.884775,
+        "holder_count": 1956381,
+        "wash_score": 85.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 3988818.07 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "derived_age",
+          "basis": "age at enrichment (no collapse observed)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "1961188 token accounts, 1956381 distinct owners (program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 85/100 (high) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "DMvGtmA4qj5qNog5gx2vSLrn3VWi9vywYhHYbQ3ZzCRd": {
+      "mint": "DMvGtmA4qj5qNog5gx2vSLrn3VWi9vywYhHYbQ3ZzCRd",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 163156,
+        "top1_share": 0.934031,
+        "top10_share": 0.989094,
+        "holder_count": 353,
+        "wash_score": 85.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 2155.73 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "rpc_signatures",
+          "basis": "creation -> last on-chain activity (proxy: when trading died, not a priced collapse time)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "353 token accounts, 353 distinct owners (program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 85/100 (high) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "4APbcuA4Eqj1vbmjTq2nnTyCAE18aK8kkmzE5LaTpump": {
+      "mint": "4APbcuA4Eqj1vbmjTq2nnTyCAE18aK8kkmzE5LaTpump",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 34548,
+        "top1_share": 0.955856,
+        "top10_share": 0.982166,
+        "holder_count": 1262,
+        "wash_score": 85.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 1847.54 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "rpc_signatures",
+          "basis": "creation -> last on-chain activity (proxy: when trading died, not a priced collapse time)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "1262 token accounts, 1262 distinct owners (program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 85/100 (high) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "CFU2Cvn3Wzb5tG6BmL2AFgmGtHDzRVgBu1zg7WTMpump": {
+      "mint": "CFU2Cvn3Wzb5tG6BmL2AFgmGtHDzRVgBu1zg7WTMpump",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 147567,
+        "top1_share": 0.986328,
+        "top10_share": 0.997142,
+        "holder_count": 368,
+        "wash_score": 85.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 1678.32 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "rpc_signatures",
+          "basis": "creation -> last on-chain activity (proxy: when trading died, not a priced collapse time)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "368 token accounts, 368 distinct owners (program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 85/100 (high) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "AqzUAqSVLZcAbMA3jBwxMqZLhBfFeYAn4CUK3QkRpump": {
+      "mint": "AqzUAqSVLZcAbMA3jBwxMqZLhBfFeYAn4CUK3QkRpump",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 43117,
+        "top1_share": 0.950071,
+        "top10_share": 0.992208,
+        "holder_count": 770,
+        "wash_score": 85.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 1924.99 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "rpc_signatures",
+          "basis": "creation -> last on-chain activity (proxy: when trading died, not a priced collapse time)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "771 token accounts, 770 distinct owners (program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 85/100 (high) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr": {
+      "mint": "7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 1536445,
+        "top1_share": 0.130016,
+        "top10_share": 0.426228,
+        "holder_count": 470730,
+        "wash_score": 5.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 2640702.21 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "derived_age",
+          "basis": "age at enrichment (no collapse observed)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "472313 token accounts, 470730 distinct owners (program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 5/100 (low) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "Hon2rHAiqkcDtUzL5gA2vjXPr7T1MPCK2UT2AHKCpump": {
+      "mint": "Hon2rHAiqkcDtUzL5gA2vjXPr7T1MPCK2UT2AHKCpump",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 382948,
+        "top1_share": 0.124153,
+        "top10_share": 0.347674,
+        "holder_count": 31460,
+        "wash_score": 5.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 66323.56 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "derived_age",
+          "basis": "age at enrichment (no collapse observed)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "31534 token accounts, 31460 distinct owners (program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 5/100 (low) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "B2GESkSErPjuCq6n4LcaJP5v2z1kJnw3xHVZnop2sZx": {
+      "mint": "B2GESkSErPjuCq6n4LcaJP5v2z1kJnw3xHVZnop2sZx",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 40502,
+        "top1_share": 0.198027,
+        "top10_share": 0.465463,
+        "holder_count": 18555,
+        "wash_score": 5.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 37251.74 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "derived_age",
+          "basis": "age at enrichment (no collapse observed)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "18729 token accounts, 18555 distinct owners (program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 5/100 (low) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "ELon2AbN3GZkhERj1DiZe74uJnjZ8ncVu45qjb1jmUSk": {
+      "mint": "ELon2AbN3GZkhERj1DiZe74uJnjZ8ncVu45qjb1jmUSk",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 50755,
+        "top1_share": 0.167046,
+        "top10_share": 0.4442,
+        "holder_count": 1674,
+        "wash_score": 5.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 24144.96 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "derived_age",
+          "basis": "age at enrichment (no collapse observed)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "1682 token accounts, 1674 distinct owners (program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 5/100 (low) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "43FkyPxVW3FqGjyYka5m9XtLFthDm8p9SPQGejirpump": {
+      "mint": "43FkyPxVW3FqGjyYka5m9XtLFthDm8p9SPQGejirpump",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 87764,
+        "top1_share": 0.979546,
+        "top10_share": 0.99093,
+        "holder_count": 494,
+        "wash_score": 85.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 1635.45 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "rpc_signatures",
+          "basis": "creation -> last on-chain activity (proxy: when trading died, not a priced collapse time)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "494 token accounts, 494 distinct owners (program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 85/100 (high) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "7wbWJzWi4sWjd4a6Sfi9DYGbE5S8tkVjty5MYWzNHYwa": {
+      "mint": "7wbWJzWi4sWjd4a6Sfi9DYGbE5S8tkVjty5MYWzNHYwa",
+      "status": "partial",
+      "features": {
+        "lp_removed": true,
+        "time_to_collapse_minutes": 1469918,
+        "top1_share": 0.894188,
+        "top10_share": 0.978976,
+        "holder_count": 216,
+        "wash_score": 85.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 589.26 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "rpc_signatures",
+          "basis": "creation -> last on-chain activity (proxy: when trading died, not a priced collapse time)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "221 token accounts, 216 distinct owners (program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 85/100 (high) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "E28eQFoCPndfLUPnxYgEWHhbnEVqSpyNPgAacoAEpump": {
+      "mint": "E28eQFoCPndfLUPnxYgEWHhbnEVqSpyNPgAacoAEpump",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 76086,
+        "top1_share": 0.215758,
+        "top10_share": 0.49564,
+        "holder_count": 5382,
+        "wash_score": 15.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 30228.8 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "derived_age",
+          "basis": "age at enrichment (no collapse observed)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "5386 token accounts, 5382 distinct owners (program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 15/100 (low) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "6SyrTPpPTUphxKneTaZFnJPu1h8ArWvoie4xHumNpump": {
+      "mint": "6SyrTPpPTUphxKneTaZFnJPu1h8ArWvoie4xHumNpump",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 134717,
+        "top1_share": 0.882156,
+        "top10_share": 0.934172,
+        "holder_count": 2772,
+        "wash_score": 85.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 2492.78 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "rpc_signatures",
+          "basis": "creation -> last on-chain activity (proxy: when trading died, not a priced collapse time)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "2773 token accounts, 2772 distinct owners (program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 85/100 (high) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "6WS1NsTCjB1VFvVL8CjqUkB4VtK4fQ3sMPrN5e7rpump": {
+      "mint": "6WS1NsTCjB1VFvVL8CjqUkB4VtK4fQ3sMPrN5e7rpump",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 128955,
+        "top1_share": 0.92165,
+        "top10_share": 0.966034,
+        "holder_count": 2331,
+        "wash_score": 85.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 2383.39 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "rpc_signatures",
+          "basis": "creation -> last on-chain activity (proxy: when trading died, not a priced collapse time)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "2332 token accounts, 2331 distinct owners (program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 85/100 (high) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "G1evzzdxVXa7q3ypytdrEWstKdaS2rvDG8q76jDTpump": {
+      "mint": "G1evzzdxVXa7q3ypytdrEWstKdaS2rvDG8q76jDTpump",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 8119,
+        "top1_share": 0.914365,
+        "top10_share": 0.985064,
+        "holder_count": 966,
+        "wash_score": 85.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 1906.66 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "rpc_signatures",
+          "basis": "creation -> last on-chain activity (proxy: when trading died, not a priced collapse time)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "966 token accounts, 966 distinct owners (program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 85/100 (high) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "C1kd6g65hLXLF2xzM6Wu3XueXEN88dqCRBCHsEKhpump": {
+      "mint": "C1kd6g65hLXLF2xzM6Wu3XueXEN88dqCRBCHsEKhpump",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 8377,
+        "top1_share": 0.943244,
+        "top10_share": 0.981628,
+        "holder_count": 741,
+        "wash_score": 85.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 1763.27 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "rpc_signatures",
+          "basis": "creation -> last on-chain activity (proxy: when trading died, not a priced collapse time)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "741 token accounts, 741 distinct owners (program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 85/100 (high) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "F3cCiTtB5hh7sf2BudYeXm45jPpF4FNbADRjje7MDfrF": {
+      "mint": "F3cCiTtB5hh7sf2BudYeXm45jPpF4FNbADRjje7MDfrF",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 8555,
+        "top1_share": 0.932199,
+        "top10_share": 0.985966,
+        "holder_count": 1033,
+        "wash_score": 85.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 1775.44 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "rpc_signatures",
+          "basis": "creation -> last on-chain activity (proxy: when trading died, not a priced collapse time)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "1033 token accounts, 1033 distinct owners (program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 85/100 (high) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    },
+    "7uyptQEZRL5pz318S3oRjHW4iszo9thfd8nkU8ATpump": {
+      "mint": "7uyptQEZRL5pz318S3oRjHW4iszo9thfd8nkU8ATpump",
+      "status": "partial",
+      "features": {
+        "lp_removed": false,
+        "time_to_collapse_minutes": 8652,
+        "top1_share": 0.985064,
+        "top10_share": 0.994266,
+        "holder_count": 854,
+        "wash_score": 85.0
+      },
+      "notes": {
+        "lp_removed": {
+          "source": "dexscreener_liquidity",
+          "basis": "liquidity_usd 1606.14 vs LP_DRAINED_USD 1000.0 (same inference as src/indexer)"
+        },
+        "time_to_collapse_minutes": {
+          "source": "rpc_signatures",
+          "basis": "creation -> last on-chain activity (proxy: when trading died, not a priced collapse time)"
+        },
+        "holder_count": {
+          "source": "rpc_program_accounts",
+          "basis": "854 token accounts, 854 distinct owners (program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb)"
+        },
+        "top1_share": {
+          "source": "rpc_program_accounts",
+          "basis": "largest holder / total supply"
+        },
+        "top10_share": {
+          "source": "rpc_program_accounts",
+          "basis": "top 10 holders / total supply"
+        },
+        "wash_score": {
+          "source": "advanced.wash_score",
+          "basis": "score 85/100 (high) from fetched holder shares"
+        }
+      },
+      "calls": 12,
+      "error": null
+    }
+  }
+}
