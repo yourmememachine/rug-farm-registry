@@ -236,14 +236,55 @@ SOL spent, no private key, no invented data:
   (≤ -70% in 24h), no liquidity reported. Labels are only
   watch / ok — never "rugged".
 - **RoadmapAgent** — the next 3 versions as markdown (v2.0
-  multi-chain, v2.1 Helius live scan, v2.2 community evidence
-  submissions). Dates are always TBD — directions, not promises.
+  multi-chain, v2.1 Helius live scan, v2.2 Muse-run evidence
+  gathering). Dates are always TBD — directions, not promises.
 
 ```bash
 python -m src.web3_future --wallet <address> [--chain solana]
 python -m src.web3_future --roadmap
 python -m src.web3_future --mc 2903 --liquidity 2752 --change -91.5
 # Exit 0 = ok, 2 = invalid args / invalid address / unsupported chain
+```
+
+## Multi-chain (v2.0)
+
+The registry is now multi-chain in `src/multichain.py` — the
+first item from the web3 roadmap. Stdlib only, no new
+dependency, no wallet, no funds moved, no private key:
+
+- **ChainAdapter** — one adapter per chain, one shared return
+  shape (chain, address, balance, kind, owner, contract flag,
+  explorer + DexScreener links, available / error). Same keys
+  on Solana and Base, so callers never branch on the chain.
+- **SolanaAdapter** — public Solana RPC probe (reuses
+  web3_future), Solscan links, DexScreener Solana.
+- **BaseAdapter** — public Base RPC (https://mainnet.base.org,
+  no key): `eth_getBalance` (wei → ETH) and `eth_getCode`
+  for contract detection. Basescan links, DexScreener Base.
+- **MultiChainRegistry** — routes a check to the right
+  adapter and adds the registry verdict. Verdicts are
+  chain-independent: flagged only on ≥ 2 rugged mints with
+  evidence, on any chain. The registry is still Solana sample
+  data only, so a Base check honestly reports its registry
+  verdict as unknown ("no Base registry coverage yet") —
+  the on-chain probe still works.
+- **ChainCompare** — the same token data on two chains, side
+  by side: liquidity, market cap, 24h change, watch / ok per
+  chain. Never "rugged" — a price drop alone is not a verdict.
+
+Future evidence work is done by Muse itself — automated
+research plus Helius / DexScreener evidence gathering —
+not by the community, and never by submissions. No
+community dependency anywhere in the roadmap.
+
+```bash
+python -m src.multichain --chain solana --address <address>
+python -m src.multichain --chain base --address 0x...
+python -m src.multichain --compare --chain-a solana --chain-b base \
+  --mc-a 5000000 --liquidity-a 237713 --change-a -16.7 \
+  --mc-b 120000 --liquidity-b 800 --change-b -91.5
+python -m src.multichain --list-chains
+# Exit 0 = ok, 2 = invalid args / chain / address
 ```
 
 ## Clone & use in your project
