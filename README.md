@@ -287,6 +287,52 @@ python -m src.multichain --list-chains
 # Exit 0 = ok, 2 = invalid args / chain / address
 ```
 
+## Live scan (v2.1)
+
+`src/live_scan.py` runs a bounded live scan of recent pump.fun
+creations — the second item from the web3 roadmap. Stdlib +
+httpx only, no new dependency, no wallet, no funds moved:
+
+- **HeliusClient** — reads `HELIUS_API_KEY` only from the
+  environment (never hardcoded, never logged, never committed).
+  Wraps the existing Helius indexer: pump.fun program
+  signatures, transaction details, mint + dev parsing.
+- **LiveScanner** — fetches N recent creations, gets each mint's
+  DexScreener outcome, labels it with `src/labeller`. A dev is
+  flagged **only** with ≥ 2 rugged mints, each with evidence
+  links (scan findings + registry record, deduped by mint).
+  One rugged mint = under review. A price drop alone never
+  flags — a mint that merely collapsed with no LP removal /
+  dev sell is `failed_but_honest`, and a mint with no pair is
+  `inconclusive`.
+- **EvidenceGatherer** — Muse-run evidence (no community):
+  builds DexScreener / Solscan / pump.fun / Helius links and a
+  short summary from real data only. Missing data =
+  "insufficient evidence", never a silent pass.
+
+```bash
+python -m src.live_scan --limit 10 [--dry-run] [--json]
+# --dry-run prints the plan and makes NO Helius call.
+# Exit 0 = ok, 2 = blocked (no key) or invalid args.
+```
+
+### Setting up the key
+
+Get a free key at https://www.helius.dev (free tier is enough).
+
+Locally:
+```bash
+cp .env.example .env   # then set HELIUS_API_KEY=<your key> in .env
+```
+
+On GitHub (so the daily 09:00 UTC workflow can run real scans):
+**Settings → Secrets and variables → Actions → New repository
+secret**, name `HELIUS_API_KEY`, value = your key.
+
+The key is never committed — `.env` is git-ignored and the
+workflow reads the secret from the environment. Without a key
+the scan exits 2 and reports "blocked"; it never invents data.
+
 ## Clone & use in your project
 
 Developers can clone the repo and use the registry from their own
