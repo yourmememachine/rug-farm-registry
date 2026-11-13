@@ -2,6 +2,28 @@
 
 All notable changes to the Open Rug-Farm Registry.
 
+## v1.7 — 2026-11-13
+
+- Added `src/agents.py`: 4 small, deterministic, stdlib-only AI
+  agents that work together — ScannerAgent (live DexScreener
+  data via `src.pump_watch`, watch labels only, never invents
+  holder data, never labels "rugged"), EvidenceAgent (evidence
+  links + registry check, clear "insufficient evidence" verdict
+  when data is missing), VerdictAgent (registry rule only:
+  flagged only with >= 2 rugged mints with evidence per mint,
+  1 rug = under_review, price drop alone never flags), AlertAgent
+  (daily-alert markdown, honest about blocked scans: no Helius
+  key = 0 checked, no invented wallets). Demo CLI
+  `python -m src.agents --mint <mint> [--dev <wallet>]` and
+  `--watch --limit 5`; exit 1 = flagged, 0 = otherwise,
+  2 = invalid.
+- Added `tests/test_agents.py` (24 tests, all mocked, no network):
+  scanner labels, evidence missing-data, verdict
+  flagged/under_review/not_flagged, price-drop-alone never
+  flagged, alert formatting, demo CLI exit codes. 109 tests total.
+- README: new "AI agents" section.
+- No registry entries added: registry is still sample data only.
+
 ## v1.6 — 2026-11-13
 
 - Daily alert for 2026-11-13: no new verified alerts — live scan
