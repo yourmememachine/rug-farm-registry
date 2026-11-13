@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-13T18:51:51.517360+00:00",
-  "labelling_rule_version": "real-v1",
+  "generated_at": "2026-11-13T19:33:02.416216+00:00",
+  "labelling_rule_version": "real-v2",
   "sources": {
     "dexscreener": 199,
     "https://dexscreener.com/solana/dywr4cjnlhpy1dv9tbshpcbxoaaq3ln3wajj9gw64co9": 1,
@@ -13,10 +13,10 @@
   },
   "summary": {
     "n_total": 206,
-    "n_rugged": 0,
+    "n_rugged": 12,
     "n_survived": 27,
-    "n_excluded": 179,
-    "n_labelled": 27,
+    "n_excluded": 167,
+    "n_labelled": 39,
     "by_source": {
       "dexscreener": 199,
       "https://dexscreener.com/solana/dywr4cjnlhpy1dv9tbshpcbxoaaq3ln3wajj9gw64co9": 1,
@@ -42,5 +42,5 @@
       "cluster_size"
     ]
   },
-  "note": "Labels are observable-market-fact labels (rule real-v1), not verified rug verdicts. Per-record 'source': 'dexscreener' (v2.9 discovery), 'pumpfun' (v2.10 pump.fun launches enriched via DexScreener), or a public source URL for a documented rug (v2.11)."
+  "note": "Labels are observable-market-fact labels (rule real-v2), not verified rug verdicts. Per-record 'source': 'dexscreener' (v2.9 discovery), 'pumpfun' (v2.10 pump.fun launches enriched via DexScreener), or a public source URL for a documented rug (v2.11)."
 }

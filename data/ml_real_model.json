@@ -1,0 +1,66 @@
+{
+  "format": "rugfarm-ml-model",
+  "version": 1,
+  "source": "outcomes",
+  "feature_names": [
+    "collapse_pct",
+    "dev_sold_pct",
+    "lp_removed",
+    "time_to_collapse_minutes",
+    "wash_score",
+    "top1_share",
+    "top10_share",
+    "holder_count",
+    "cluster_size",
+    "liquidity_usd"
+  ],
+  "weights": [
+    0.03605107933564281,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    -2.605092867480243
+  ],
+  "bias": -2.2058793740924476,
+  "feature_means": [
+    0.013751724137931036,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.7050246267046397
+  ],
+  "feature_stds": [
+    0.0360606923326509,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    0.1824289663968237
+  ],
+  "n_train": 31,
+  "evaluation": {
+    "n": 8,
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "true_positives": 4,
+    "false_positives": 0,
+    "false_negatives": 0,
+    "true_negatives": 4
+  },
+  "created": "2026-11-13"
+}
