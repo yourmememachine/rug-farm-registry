@@ -2,7 +2,7 @@
 
 Synthetic data only; all backends are fakes, no network.
 """
-from datetime import date
+from datetime import date, datetime, timezone
 
 import pytest
 
@@ -14,7 +14,10 @@ MINT = "9oJk7eMccQchx3evoN5C5pKQD5Xodb4C1qkhemjjpump"  # POOR
 MINT2 = "7fAJ48SPtycJNLERz7G2ZDtfgwij6DhW3ArJ8BSnpump"  # BagsBack
 DEV = "7kGAXsa7n1qN2FuNoJAGmzebmN9KqqLAHcwj7gvoekKk"
 DEV2 = "CGaqXYFcmjY5okNWkBPWjxQrdJ8oUcUCuSnnhVn8aTAR"
-TODAY = date.today()
+# UTC date: alert timestamps are UTC (db._now_iso), and the watcher
+# files alerts by that UTC day — a local date would drop alerts
+# recorded after 16:00/17:00 local time from "today's" file.
+TODAY = datetime.now(timezone.utc).date()
 
 
 def _rugged_mint(mint):
