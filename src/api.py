@@ -21,6 +21,7 @@ import os
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi.middleware.cors import CORSMiddleware
 
 from .cluster import build_clusters  # noqa: F401  (re-exported for callers)
 from .registry import (
@@ -43,6 +44,17 @@ app = FastAPI(
         "no real wallet is accused."
     ),
     version="0.1.0",
+)
+
+# CORS: the API is public and read-only, and the Solana OS calls it
+# straight from the browser. Without these headers browsers refuse
+# to read the replies (the OS reported "unreachable from this
+# browser"). No credentials are ever involved, so any origin is fine.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET", "OPTIONS"],
+    allow_headers=["*"],
 )
 
 # x402 pay-per-check gate, built from the environment at import.
