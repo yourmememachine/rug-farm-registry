@@ -2,6 +2,83 @@
 
 All notable changes to the Open Rug-Farm Registry.
 
+## v2.18 — 2026-11-13 — x402 pay-per-check + MCP server
+
+Tech ported from SolanaOS (github.com/x402agent/solanaos):
+its x402 pay-per-call (Solana USDC via the public facilitator)
+and its MCP server (tools over JSON-RPC for AI agents). Both
+rebuilt here in stdlib + httpx — there is no Python x402 SDK
+and no MCP SDK in this repo.
+
+- **x402 pay-per-check (`src/x402.py`).** The valuable API
+  endpoints — `GET /check` and `GET /wallets/{address}` —
+  can charge a tiny amount of Solana USDC per call. Config
+  from env: `RUGFARM_X402_PAYEE` (the wallet receiving USDC —
+  NO default; when unset, payments are DISABLED and the API
+  behaves exactly as today, free), `RUGFARM_X402_PRICE_USDC`
+  (default `"0.001"`), `RUGFARM_X402_FACILITATOR` (default
+  `https://facilitator.x402.rs`). Network `solana` mainnet,
+  USDC mint `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`,
+  amount converted with `Decimal` (0.001 -> 1000 base units);
+  a bad/zero/negative price raises instead of silently
+  becoming free. `/health`, `/`, `/registry`,
+  `/clusters/{cluster_id}` stay free.
+- **x402 flow (server side, the standard).** No `X-Payment`
+  header -> HTTP 402 with the payment requirements
+  (`accepts`: scheme `"exact"`, network `"solana"`, amount in
+  base units, asset = USDC mint, payee, `maxTimeoutSeconds`
+  60, description naming the endpoint). With a header
+  (base64 JSON per x402 v1): the payload is checked, then
+  POST `/verify` to the facilitator — invalid = 402 with the
+  facilitator's reason — then POST `/settle` — failure = 402;
+  settled = serve + record. A facilitator outage (transport
+  error, non-200, non-JSON) = 402 with "payment verification
+  unavailable" / "payment settlement unavailable" — paid
+  content is never served unverified, and nothing is charged
+  without settling.
+- **Replay protection.** `payments` table in SQLite (schema
+  migration 3, `signature` UNIQUE, `record_payment` /
+  `get_payment` / `list_payments`). A replayed header whose
+  signature is already recorded *for that endpoint* is served
+  immediately with no verify/settle call; the same signature
+  on the *other* endpoint goes through verify/settle again.
+  One payment = one endpoint.
+- **MCP server (`src/mcp_server.py`).** stdio JSON-RPC 2.0
+  MCP server, stdlib only (`json`, `sys`), no MCP SDK.
+  Implements `initialize` (protocol version echoed from the
+  client, server `rug-farm-registry` v2.18),
+  `notifications/initialized` (no reply), `tools/list`,
+  `tools/call`, `ping`, batch requests, and clean JSON-RPC
+  errors (parse -32700, invalid request -32600, unknown
+  method -32601); malformed lines get an error response,
+  never a crash; EOF exits 0. Run: `python -m
+  src.mcp_server` — wire it into Claude Desktop / Cursor as
+  an MCP server and any agent can call the registry.
+- **MCP tools (all call the existing modules, no
+  reimplemented logic):** `rug_check {dev_wallet, mint?}` ->
+  `check_wallet`; `deep_check {mint}` -> `DeepChecker`
+  (description notes a full keyless deep check can take
+  minutes on a throttled RPC); `dev_check {wallet}` ->
+  `DevChecker`; `registry_status {}` -> health summary. Every
+  tool description states the ≥ 2 rugged mints + evidence
+  rule and that no data is ever invented. Tool errors return
+  `isError: true` results, not crashes.
+- **Bug fixed in passing (pre-existing, found by the parent's
+  verification):** the live watcher's alert file used the
+  LOCAL date while alert timestamps are UTC, so alerts
+  recorded after 16:00/17:00 local time vanished from
+  "today's" file until the next day — two tests in
+  `tests/test_live_watch.py` failed whenever the UTC and
+  local dates differed. `src/live_watch.py` now files alerts
+  by the UTC day, and the tests use the UTC date. The alert
+  itself was never lost (the cycle still recorded and
+  messaged it); only the file was a day late.
+- **Tests:** 20 new in `tests/test_x402.py` (mocked
+  facilitator via `httpx.MockTransport` + TestClient) and 16
+  new in `tests/test_mcp_server.py` (scripted stdio via
+  StringIO). Full suite at v2.18 completion: **654 tests,
+  all passing**.
+
 ## v2.17 — 2026-11-13 — Dev-wallet-first check
 
 - **Dev check (`src/dev_check.py`).** The manual POOR-dev

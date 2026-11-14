@@ -116,6 +116,30 @@ curl http://127.0.0.1:8000/clusters/cluster-sample-a1
 Risk levels: `high` (flagged, ≥ 2 rugs), `watch` (under review,
 1 rug), `expired` (entry past TTL), `unknown` (no record).
 
+## Pay-per-check with x402 (v2.18)
+
+Ported from SolanaOS's x402 integration: the valuable endpoints
+(`GET /check` and `GET /wallets/{address}`) can charge a tiny
+amount of Solana USDC per call, no accounts, no sign-ups. Off
+by default — set a receiving wallet to turn it on:
+
+```bash
+RUGFARM_X402_PAYEE=<your Solana wallet>  # no default: unset = free, as today
+RUGFARM_X402_PRICE_USDC=0.001            # default, per call
+RUGFARM_X402_FACILITATOR=https://facilitator.x402.rs  # default
+uvicorn src.api:app --port 8000
+```
+
+Without a payment the endpoint answers HTTP 402 with the payment
+requirements (amount in USDC base units, USDC mint, payee, network
+`solana`); with an `X-Payment` header the payment is verified and
+settled through the public x402 facilitator before the answer is
+served. Each settled payment is recorded in the SQLite database
+(one payment = one endpoint; replays are served from the record,
+never charged twice). A facilitator outage means a 402, never an
+unverified answer. `/health`, `/registry` and `/clusters` stay
+free.
+
 ## Pre-trade check (CLI)
 
 No API server needed — check a dev wallet straight from the terminal:
@@ -786,6 +810,26 @@ python -m src.dev_check --wallet <address> [--json] [--limit N]
 #      invalid address / no network.
 ```
 
+## MCP server (v2.18)
+
+Ported from SolanaOS's MCP server: the registry as tools any AI
+agent can call, over stdio JSON-RPC — no SDK, stdlib only. Wire
+it into Claude Desktop / Cursor as an MCP server (`python -m
+src.mcp_server`) and an agent can check a dev or a mint without
+a human pasting addresses:
+
+- `rug_check {dev_wallet, mint?}` — registry check, risk level,
+  reasons and evidence links.
+- `deep_check {mint}` — the full deep check in one report. A
+  keyless deep check can take minutes on a throttled RPC.
+- `dev_check {wallet}` — profile, funder chain, bundled-wallet
+  test.
+- `registry_status {}` — version, entry count, flagged count.
+
+Every tool states the verdict rule (flagged only at ≥ 2 rugged
+mints with evidence; a pattern alone is never flagged) and that
+no data is ever invented.
+
 ## Clone & use in your project
 
 Developers can clone the repo and use the registry from their own
@@ -1013,6 +1057,8 @@ src/deep_check.py       one-command deep check: coin + dev + side wallets (v2.12
 src/dev_check.py        dev-wallet-first check: profile + funder chain + bundled wallets (v2.17)
 src/public_rpc.py       shared public Solana RPC client + keyless fetch helpers (v2.16)
 src/feature_enrich.py   ML feature enrichment from the public RPC (v2.15)
+src/x402.py             x402 pay-per-check: USDC per API call via the public facilitator (v2.18)
+src/mcp_server.py       MCP server: rug_check / deep_check / dev_check / registry_status as agent tools (v2.18)
 src/db.py               SQLite storage: mints, devs, transfers, funding edges, outcomes, alerts, model runs (v2.14)
 src/chain_index.py      own chain index from raw RPC transactions (v2.14)
 src/live_watch.py       live watcher daemon, 60s polls, deduped alerts (v2.14)
