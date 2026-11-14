@@ -17,6 +17,9 @@ Schema (versioned, migrated in place — see ``migrate``):
     outcomes      one current outcome per mint (label + rule version)
     alerts        one alert per (mint, verdict) — never re-alerted
     model_runs    one row per ML training run (metrics, rule version)
+    payments      one row per settled x402 payment (v2.18) — the
+                  transaction signature is UNIQUE, so the same
+                  payment is never settled twice
     holders       a VIEW over transfers: net token balance per wallet
 
 ``init_db`` creates the file and applies every pending migration;
@@ -36,7 +39,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_DB_PATH = PROJECT_ROOT / "data" / "rugfarm.db"
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 # Migration SQL, applied in order. Each migration is idempotent
 # (CREATE TABLE IF NOT EXISTS / CREATE INDEX IF NOT EXISTS) so a
@@ -131,6 +134,21 @@ MIGRATIONS: list[tuple[int, str]] = [
             ON outcomes (label);
         CREATE INDEX IF NOT EXISTS idx_alerts_mint
             ON alerts (mint);
+        """,
+    ),
+    (
+        3,
+        """
+        CREATE TABLE IF NOT EXISTS payments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            signature TEXT UNIQUE NOT NULL,
+            amount_base_units INTEGER NOT NULL,
+            endpoint TEXT NOT NULL,
+            payer TEXT,
+            created_at TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_payments_endpoint
+            ON payments (endpoint);
         """,
     ),
 ]
@@ -402,6 +420,37 @@ def record_model_run(
     conn.commit()
 
 
+def record_payment(
+    conn: sqlite3.Connection,
+    signature: str,
+    amount_base_units: int,
+    endpoint: str,
+    payer: str | None = None,
+) -> bool:
+    """Record a settled x402 payment. Returns True when it was new.
+
+    The transaction signature is UNIQUE: recording the same
+    payment twice is a no-op (returns False) — the x402 gate
+    checks this table before settling, so a replayed payment
+    header is served from the stored record instead of being
+    settled a second time.
+    """
+    if not signature:
+        raise ValueError("signature must not be empty")
+    if amount_base_units <= 0:
+        raise ValueError("amount_base_units must be positive")
+    cur = conn.execute(
+        """
+        INSERT OR IGNORE INTO payments
+            (signature, amount_base_units, endpoint, payer, created_at)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (signature, amount_base_units, endpoint, payer, _now_iso()),
+    )
+    conn.commit()
+    return cur.rowcount == 1
+
+
 # ======================================================================
 # Readers
 # ======================================================================
@@ -479,6 +528,23 @@ def list_model_runs(conn: sqlite3.Connection, limit: int = 20) -> list[dict]:
     return [dict(r) for r in rows]
 
 
+def get_payment(conn: sqlite3.Connection, signature: str) -> dict | None:
+    """The stored record for a settled payment, or None."""
+    return _row_to_dict(
+        conn.execute(
+            "SELECT * FROM payments WHERE signature = ?", (signature,)
+        ).fetchone()
+    )
+
+
+def list_payments(conn: sqlite3.Connection, limit: int = 50) -> list[dict]:
+    rows = conn.execute(
+        "SELECT * FROM payments ORDER BY created_at DESC, id DESC LIMIT ?",
+        (limit,),
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
 def count_table(conn: sqlite3.Connection, table: str) -> int:
     """Row count for a known table (table name is never user input)."""
     allowed = {
@@ -489,6 +555,7 @@ def count_table(conn: sqlite3.Connection, table: str) -> int:
         "outcomes",
         "alerts",
         "model_runs",
+        "payments",
     }
     if table not in allowed:
         raise ValueError(f"unknown table {table!r}")

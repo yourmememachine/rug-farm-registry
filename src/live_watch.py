@@ -79,7 +79,13 @@ def _now_iso() -> str:
 
 
 def _today() -> date:
-    return date.today()
+    # UTC date, not local: every timestamp the DB stores
+    # (alerts, outcomes, transfers) is UTC via _now_iso(), and
+    # write_live_alerts matches alerts by their created_at date
+    # string. Using the local date here made alerts recorded
+    # after 16:00/17:00 local time (already the next UTC day)
+    # vanish from "today's" file until the next day.
+    return datetime.now(timezone.utc).date()
 
 
 def _outcome_event(outcome: MintOutcome) -> MintEvent:
