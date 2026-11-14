@@ -15,6 +15,16 @@ BASE58_ALPHABET = set("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxy
 MIN_RUGGED_MINTS_TO_FLAG = 2
 DEFAULT_TTL_DAYS = 180
 
+# Chains the registry knows about. "solana" is the only chain with
+# registry coverage (the verdict data is Solana sample data);
+# "base" has a live on-chain probe but no verdict coverage, and
+# "machine" is listed only — a local testnet with no public RPC,
+# so it has neither a probe nor verdict coverage (see
+# src/multichain.py NETWORKS). Records without a "chain" field
+# are Solana records: the field defaults to "solana" everywhere.
+KNOWN_CHAINS = ("solana", "base", "machine")
+DEFAULT_CHAIN = "solana"
+
 
 def is_valid_solana_address(address: object) -> bool:
     """Solana addresses are 32-44 base58 characters (no 0, O, I, l)."""
@@ -65,6 +75,8 @@ def validate_entry(entry: object) -> list[str]:
         errors.append("cluster_id: required non-empty string")
     if entry.get("status") not in ("flagged", "under_review", "expired", "disputed"):
         errors.append("status: must be flagged / under_review / expired / disputed")
+    if "chain" in entry and entry.get("chain") not in KNOWN_CHAINS:
+        errors.append(f"chain: must be one of {', '.join(KNOWN_CHAINS)}")
     if _parse_date(entry.get("first_seen")) is None:
         errors.append("first_seen: must be a YYYY-MM-DD date")
     if _parse_date(entry.get("last_seen")) is None:
@@ -235,6 +247,7 @@ def check_wallet(
     entry = get_wallet(data, dev_wallet)
     if entry is None:
         return {
+            "chain": DEFAULT_CHAIN,
             "dev_wallet": dev_wallet,
             "mint": mint,
             "mint_in_registry": None if mint is None else False,
@@ -270,6 +283,7 @@ def check_wallet(
         if mint_note:
             reasons.append(mint_note)
         return {
+            "chain": entry.get("chain", DEFAULT_CHAIN),
             "dev_wallet": dev_wallet,
             "mint": mint,
             "mint_in_registry": mint_in_registry,
@@ -288,6 +302,7 @@ def check_wallet(
         if mint_note:
             reasons.append(mint_note)
         return {
+            "chain": entry.get("chain", DEFAULT_CHAIN),
             "dev_wallet": dev_wallet,
             "mint": mint,
             "mint_in_registry": mint_in_registry,
@@ -299,6 +314,7 @@ def check_wallet(
             "evidence": evidence,
         }
     return {
+        "chain": entry.get("chain", DEFAULT_CHAIN),
         "dev_wallet": dev_wallet,
         "mint": mint,
         "mint_in_registry": mint_in_registry,

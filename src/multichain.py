@@ -25,6 +25,14 @@ check therefore always reports its registry verdict as unknown
 ("no Base registry coverage yet") — the on-chain probe still
 works, the verdict does not pretend otherwise.
 
+Machine (the author's Solana-derived L1, Agave 2.3.13) is
+LISTED in NETWORKS, not probed: it is a local single-validator
+testnet with no public RPC, no public explorer and no
+DexScreener listing, so a Machine check honestly reports its
+probe unavailable and its verdict unknown. Listing it here is
+the first multi-chain step for that network — coverage and a
+probe arrive only when a public endpoint exists.
+
     python -m src.multichain --chain solana --address <address>
     python -m src.multichain --chain base --address 0x...
     python -m src.multichain --compare --chain-a solana --chain-b base \
@@ -64,6 +72,80 @@ _EVM_ADDRESS_RE = re.compile(r"^0x[0-9a-fA-F]{40}$")
 
 # DexScreener chain slugs, one per supported chain.
 DEXSCREENER_CHAIN = {"solana": "solana", "base": "base"}
+
+# Networks the registry knows about, with their real status.
+# This is the config surface for multi-chain support: a chain is
+# listed here when it is a real network the project works with,
+# whether or not it has a live probe or registry coverage.
+#   status: "live" = public network, reachable today;
+#           "local testnet" = running locally only, not live.
+#   registry_coverage: whether verdict data exists for the chain.
+#   probe: whether an on-chain probe can run against it.
+# Machine is listed, not live: a single-validator local testnet
+# (Agave 2.3.13, genesis 32W8ouqrHbuhE3PM6ZsJrJcDbP7Tx9aC2zRvrEabkQSb)
+# with no public RPC, no public explorer and no DexScreener
+# listing, so there is no adapter for it in ADAPTERS — a probe
+# would have nothing to call. Machine addresses use the same
+# base58 format as Solana addresses. See ECOSYSTEM.md in the
+# Machine repo (github.com/yourmememachine/mememachine).
+NETWORKS: dict[str, dict] = {
+    "solana": {
+        "chain": "solana",
+        "name": "Solana",
+        "native_symbol": "SOL",
+        "status": "live",
+        "registry_coverage": True,
+        "probe": "live",
+        "explorer": "https://solscan.io",
+        "rpc_url": SOLANA_RPC_URL,
+        "note": "Registry verdict data is Solana sample data.",
+    },
+    "base": {
+        "chain": "base",
+        "name": "Base",
+        "native_symbol": "ETH",
+        "status": "live",
+        "registry_coverage": False,
+        "probe": "live",
+        "explorer": "https://basescan.org",
+        "rpc_url": BASE_RPC_URL,
+        "note": "On-chain probe works; no Base registry coverage yet.",
+    },
+    "machine": {
+        "chain": "machine",
+        "name": "Machine",
+        "native_symbol": "MACHINE",
+        "status": "local testnet",
+        "registry_coverage": False,
+        "probe": "unavailable",
+        "explorer": None,
+        "rpc_url": "http://127.0.0.1:8899",
+        "genesis_hash": "32W8ouqrHbuhE3PM6ZsJrJcDbP7Tx9aC2zRvrEabkQSb",
+        "repo": "https://github.com/yourmememachine/mememachine",
+        "note": (
+            "Local single-validator testnet only — not live. "
+            "No public RPC, no public explorer, no DexScreener "
+            "listing; transfers unverified; bridge not deployed. "
+            "The RPC URL above is local-only."
+        ),
+    },
+}
+
+
+def supported_networks() -> list[str]:
+    """Every network listed in NETWORKS, including unprobeable ones."""
+    return sorted(NETWORKS)
+
+
+def network_status(chain: str) -> dict:
+    """The NETWORKS entry for a chain, or a clear error."""
+    entry = NETWORKS.get(chain)
+    if entry is None:
+        raise ValueError(
+            f"Unknown network: {chain!r}. Known networks: "
+            + ", ".join(supported_networks())
+        )
+    return dict(entry)
 
 
 def is_valid_evm_address(address: str) -> bool:
@@ -270,6 +352,58 @@ class MultiChainRegistry:
     def check(self, address: str, chain: str, mint: str | None = None,
               probe: object | None = None) -> dict:
         """Probe + registry verdict for one address on one chain."""
+        if chain == "machine":
+            # Machine is listed, not live: no public RPC exists to
+            # probe, so the probe honestly reports unavailable
+            # instead of inventing a balance, and the verdict stays
+            # unknown — there is no Machine registry coverage yet.
+            # Machine addresses use the Solana base58 format.
+            if not is_valid_solana_address(address):
+                raise ValueError(f"Invalid Machine address: {address!r}")
+            return {
+                "chain": "machine",
+                "address": address,
+                "mint": mint,
+                "probe": {
+                    "chain": "machine",
+                    "address": address,
+                    "available": False,
+                    "kind": None,
+                    "balance": None,
+                    "balance_native": None,
+                    "balance_raw": None,
+                    "owner": None,
+                    "is_contract": None,
+                    "explorer": None,
+                    "dexscreener": None,
+                    "error": (
+                        "Machine has no public RPC yet — local "
+                        "single-validator testnet only "
+                        "(http://127.0.0.1:8899, local-only). "
+                        "No balance can be probed from here."
+                    ),
+                },
+                "verdict": {
+                    "chain": "machine",
+                    "dev_wallet": address,
+                    "mint": mint,
+                    "mint_in_registry": None if mint is None else False,
+                    "flagged": False,
+                    "risk_level": "unknown",
+                    "rugged_mint_count": 0,
+                    "cluster_id": None,
+                    "reasons": [
+                        "No Machine registry coverage yet — the "
+                        "registry is Solana sample data only. "
+                        "This is a listing, not a verdict."
+                    ],
+                    "evidence": [],
+                },
+                "flagged": False,
+                "exit_code": 0,
+                "note": "Machine is listed as a network; it is a "
+                        "local testnet, not a live chain.",
+            }
         cls = self._adapters.get(chain)
         if cls is None:
             raise ValueError(
@@ -287,6 +421,7 @@ class MultiChainRegistry:
             verdict = registry_mod.check_wallet(self._data, address, mint=mint)
         else:
             verdict = {
+                "chain": chain,
                 "dev_wallet": address,
                 "mint": mint,
                 "mint_in_registry": None if mint is None else False,
@@ -389,7 +524,10 @@ def main(argv: list[str] | None = None) -> int:
         prog="src.multichain",
         description="Multi-chain rug check: Solana + Base, same verdict rule.",
     )
-    parser.add_argument("--chain", default="solana", help="Chain: solana or base")
+    parser.add_argument("--chain", default="solana",
+                        help="Chain: solana, base, or machine "
+                        "(machine is listed only — local testnet, "
+                        "no public probe)")
     parser.add_argument("--address", help="Wallet / mint address to check")
     parser.add_argument("--mint", help="Optional mint to check against the registry")
     parser.add_argument("--list-chains", action="store_true", help="List supported chains")
@@ -412,6 +550,12 @@ def main(argv: list[str] | None = None) -> int:
         for chain in supported_chains():
             adapter = get_adapter(chain)
             print(f"  - {adapter.chain_name} ({chain}): {adapter.explorer}")
+        print("Listed networks: " + ", ".join(supported_networks()))
+        for chain in supported_networks():
+            net = network_status(chain)
+            print(f"  - {net['name']} ({chain}): {net['status']}"
+                  f" — probe: {net['probe']}, registry coverage: "
+                  f"{'yes' if net['registry_coverage'] else 'no'}")
         return EXIT_OK
 
     if args.compare:

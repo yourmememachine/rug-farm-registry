@@ -2,6 +2,7 @@
 
 Endpoints (JSON only):
     GET /health
+    GET /networks
     GET /registry
     GET /wallets/{address}
     GET /check?mint=<mint>&dev=<dev_wallet>
@@ -24,6 +25,7 @@ from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from .cluster import build_clusters  # noqa: F401  (re-exported for callers)
+from .multichain import network_status, supported_networks
 from .registry import (
     check_wallet,
     get_wallet,
@@ -86,7 +88,23 @@ def health() -> dict:
         "sample_data": bool(data.get("sample_data")),
         "entries": len(data.get("entries", [])),
         "flagged": len(list_flagged(data)),
+        # The verdict data is Solana-only; "networks" lists every
+        # network the registry knows about (see /networks), not
+        # just the ones with coverage.
+        "chain": "solana",
+        "networks": supported_networks(),
     }
+
+
+@app.get("/networks")
+def networks() -> dict:
+    """Every network the registry lists, with its real status.
+
+    Solana is the only chain with verdict coverage; Base has a
+    live probe but no coverage; Machine is a local testnet —
+    listed, not live, no probe and no coverage.
+    """
+    return {"networks": [network_status(chain) for chain in supported_networks()]}
 
 
 @app.get("/")
@@ -95,7 +113,7 @@ def index() -> dict:
         "name": "Open Rug-Farm Registry",
         "version": "0.1.0",
         "sample_data": True,
-        "endpoints": ["/health", "/registry", "/wallets/{address}",
+        "endpoints": ["/health", "/networks", "/registry", "/wallets/{address}",
                       "/check?dev=<wallet>&mint=<mint>", "/clusters/{cluster_id}"],
     }
 
@@ -111,7 +129,8 @@ def wallet(address: str, _payment: dict = Depends(require_payment)) -> dict:
     entry = get_wallet(data, address)
     if entry is None:
         raise HTTPException(status_code=404, detail="Wallet not in registry")
-    return {**entry, "currently_flagged": is_flagged(entry)}
+    return {**entry, "chain": entry.get("chain", "solana"),
+            "currently_flagged": is_flagged(entry)}
 
 
 @app.get("/check")
