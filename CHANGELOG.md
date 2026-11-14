@@ -2,6 +2,40 @@
 
 All notable changes to the Open Rug-Farm Registry.
 
+## v2.19 — 2026-11-14 — Machine listed as a network (multi-chain)
+
+- **Machine listed in `NETWORKS` (`src/multichain.py`).**
+  Machine — the author's Solana-derived L1 (Agave 2.3.13,
+  genesis `32W8ouqrHbuhE3PM6ZsJrJcDbP7Tx9aC2zRvrEabkQSb`)
+  — is now a listed network with its real status: "local
+  testnet", probe "unavailable", registry coverage "no". It
+  has no probe adapter (there is no public RPC to call) and
+  no verdict coverage. `supported_networks()` returns
+  `["base", "machine", "solana"]`; probeable chains
+  (`supported_chains()`) are unchanged at `["base",
+  "solana"]`. A Machine check (`python -m src.multichain
+  --chain machine --address <address>`, Solana-format
+  addresses) reports its probe unavailable with the reason
+  and its verdict unknown — never an invented balance.
+- **`chain` field, defaulting to `"solana"`.**
+  `check_wallet` results, `GET /check` and `GET
+  /wallets/{address}` now carry `"chain"`; the registry data
+  is Solana-only, so records without the field are Solana
+  records. Registry entries may carry an optional `"chain"`
+  (`solana` / `base` / `machine`, in
+  `src/registry.py:KNOWN_CHAINS`); any other value fails
+  validation. No existing record, response shape, or CLI
+  output changed beyond the added field.
+- **API: `GET /networks`.** Exposes the same network table
+  (name, native token, status, probe, registry coverage,
+  explorer, RPC URL, Machine genesis hash + repo). `/health`
+  adds `"chain": "solana"` and `"networks"`.
+- **Tests:** 11 new in `tests/test_multichain.py` (network
+  table, Machine check honesty, `chain` field, validation)
+  and 2 new in `tests/test_api.py` (`/networks`, `chain`
+  field). Full suite: **669 tests, all passing** (656 before
+  this change).
+
 ## v2.18 — 2026-11-13 — x402 pay-per-check + MCP server
 
 Tech ported from SolanaOS (github.com/x402agent/solanaos):

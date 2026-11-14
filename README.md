@@ -292,6 +292,23 @@ dependency, no wallet, no funds moved, no private key:
   data only, so a Base check honestly reports its registry
   verdict as unknown ("no Base registry coverage yet") —
   the on-chain probe still works.
+- **Machine is listed, not live.** `NETWORKS` in
+  `src/multichain.py` lists Machine (the author's
+  Solana-derived L1, Agave 2.3.13, genesis
+  `32W8ouqrHbuhE3PM6ZsJrJcDbP7Tx9aC2zRvrEabkQSb`) with status
+  "local testnet": a single-validator local testnet with no
+  public RPC, no public explorer and no DexScreener listing,
+  so it has no probe adapter and no registry coverage. A
+  Machine check reports its probe unavailable and its verdict
+  unknown, honestly, instead of inventing numbers. `GET
+  /networks` exposes the same table over the API.
+- **Chain field.** Every verdict now carries `"chain"`
+  (`check_wallet` results, `GET /check`, `GET
+  /wallets/{address}`), defaulting to `"solana"` — the
+  registry data is Solana-only, and records without a
+  `"chain"` field are Solana records. Registry entries may
+  carry an optional `"chain"` (`solana` / `base` /
+  `machine`); anything else fails validation.
 - **ChainCompare** — the same token data on two chains, side
   by side: liquidity, market cap, 24h change, watch / ok per
   chain. Never "rugged" — a price drop alone is not a verdict.
