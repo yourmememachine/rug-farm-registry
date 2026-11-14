@@ -16,7 +16,9 @@ from src.multichain import (
     get_adapter,
     is_valid_evm_address,
     main,
+    network_status,
     supported_chains,
+    supported_networks,
 )
 
 # Well-known synthetic addresses only.
@@ -278,3 +280,124 @@ def test_cli_invalid_address(capsys):
 
 def test_cli_no_args(capsys):
     assert main([]) == 2
+
+
+# --- Machine: listed network, local testnet, not live ---
+
+def test_supported_networks_lists_machine_as_local_testnet():
+    assert supported_networks() == ["base", "machine", "solana"]
+    # Probeable chains are unchanged: Machine has no adapter because
+    # there is no public RPC to probe.
+    assert supported_chains() == ["base", "solana"]
+
+
+def test_network_status_machine_is_honest():
+    net = network_status("machine")
+    assert net["name"] == "Machine"
+    assert net["native_symbol"] == "MACHINE"
+    assert net["status"] == "local testnet"
+    assert net["registry_coverage"] is False
+    assert net["probe"] == "unavailable"
+    assert net["explorer"] is None
+    assert net["genesis_hash"] == "32W8ouqrHbuhE3PM6ZsJrJcDbP7Tx9aC2zRvrEabkQSb"
+    assert net["repo"] == "https://github.com/yourmememachine/mememachine"
+
+
+def test_network_status_solana_and_base():
+    assert network_status("solana")["registry_coverage"] is True
+    assert network_status("solana")["probe"] == "live"
+    assert network_status("base")["registry_coverage"] is False
+    assert network_status("base")["probe"] == "live"
+
+
+def test_network_status_unknown_chain():
+    with pytest.raises(ValueError, match="Unknown network"):
+        network_status("ethereum")
+
+
+def test_machine_check_probe_unavailable_but_honest():
+    # Machine addresses use the Solana base58 format.
+    result = MultiChainRegistry(data={"entries": []}).check(SOL_WALLET, "machine")
+    assert result["chain"] == "machine"
+    assert result["probe"]["available"] is False
+    assert result["probe"]["balance"] is None
+    assert "no public RPC" in result["probe"]["error"]
+    assert result["verdict"]["risk_level"] == "unknown"
+    assert result["verdict"]["chain"] == "machine"
+    assert "No Machine registry coverage yet" in result["verdict"]["reasons"][0]
+    assert result["flagged"] is False
+    assert result["exit_code"] == 0
+
+
+def test_machine_check_invalid_address():
+    with pytest.raises(ValueError, match="Invalid Machine address"):
+        MultiChainRegistry(data={"entries": []}).check("not-an-address", "machine")
+
+
+def test_cli_list_chains_includes_machine(capsys):
+    assert main(["--list-chains"]) == 0
+    out = capsys.readouterr().out
+    assert "machine" in out
+    assert "local testnet" in out
+
+
+def test_cli_machine_check_is_honest(capsys):
+    assert main(["--chain", "machine", "--address", SOL_WALLET]) == 0
+    out = capsys.readouterr().out
+    assert "Probe unavailable" in out
+    assert "Verdict: unknown" in out
+
+
+# --- chain field on verdicts (defaults to solana) ---
+
+def test_check_wallet_chain_defaults_to_solana():
+    from src.registry import check_wallet
+
+    unknown = check_wallet({"entries": []}, SOL_WALLET)
+    assert unknown["chain"] == "solana"
+    flagged = check_wallet({"entries": []}, SAMPLE_FLAGGED_DEV)
+    # No entry in this empty registry: still solana by default.
+    assert flagged["chain"] == "solana"
+
+
+def test_check_wallet_chain_follows_entry():
+    from src.registry import check_wallet
+
+    entry = {
+        "wallet": SOL_WALLET,
+        "cluster_id": "cluster-test",
+        "status": "under_review",
+        "first_seen": "2026-11-01",
+        "last_seen": "2026-11-13",
+        "ttl_days": 180,
+        "chain": "machine",
+        "rugged_mints": [{
+            "mint": SOL_MINT, "outcome": "rugged",
+            "peak_market_cap_usd": 1000, "current_market_cap_usd": 10,
+            "evidence": {"solscan_mint": "https://solscan.io/token/x"},
+        }],
+    }
+    result = check_wallet({"entries": [entry]}, SOL_WALLET)
+    assert result["chain"] == "machine"
+    assert result["risk_level"] == "watch"
+
+
+def test_validate_entry_rejects_unknown_chain():
+    from src.registry import validate_entry
+
+    entry = {
+        "wallet": SOL_WALLET,
+        "cluster_id": "cluster-test",
+        "status": "under_review",
+        "first_seen": "2026-11-01",
+        "last_seen": "2026-11-13",
+        "ttl_days": 180,
+        "chain": "ethereum",
+        "rugged_mints": [{
+            "mint": SOL_MINT, "outcome": "rugged",
+            "peak_market_cap_usd": 1000, "current_market_cap_usd": 10,
+            "evidence": {"solscan_mint": "https://solscan.io/token/x"},
+        }],
+    }
+    errors = validate_entry(entry)
+    assert any("chain" in e for e in errors)
